@@ -1,0 +1,208 @@
+version: '3.8'
+
+services:
+  # Infrastructure
+  postgres:
+    image: postgres:17-alpine
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: coinsight
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./database:/docker-entrypoint-initdb.d
+    networks:
+      - coinsight-network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.1
+    container_name: keycloak
+    ports:
+      - "8090:8080"
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: postgres
+      KC_HEALTH_ENABLED: 'true'
+      KC_METRICS_ENABLED: 'true'
+      KC_HOSTNAME_URL: http://localhost:8090
+      KC_HOSTNAME_ADMIN_URL: http://localhost:8090
+      KC_HTTP_ENABLED: 'true'
+    command: ['start-dev']
+    depends_on:
+      - postgres
+    networks:
+      - coinsight-network
+
+  vault:
+    image: hashicorp/vault:1.19
+    container_name: vault
+    ports:
+      - "8200:8200"
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: myroot
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+    cap_add:
+      - IPC_LOCK
+    networks:
+      - coinsight-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    depends_on:
+      - zookeeper
+    networks:
+      - coinsight-network
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - coinsight-network
+
+  prometheus:
+    image: prom/prometheus:v2.50.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - coinsight-network
+
+  grafana:
+    image: grafana/grafana:10.3.0
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - coinsight-network
+
+  # Microservices
+  config-server:
+    build: ./config-server
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    environment:
+      - CONFIG_REPO_URI=file:///tmp/config-repo
+      - VAULT_URI=http://vault:8200
+      - VAULT_TOKEN=myroot
+    volumes:
+      - ./config-repo:/tmp/config-repo
+    depends_on:
+      - vault
+    networks:
+      - coinsight-network
+
+  gateway-service:
+    build: ./gateway-service
+    container_name: gateway-service
+    ports:
+      - "8080:8080"
+    environment:
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - KEYCLOAK_URL=http://keycloak:8080
+      - AUTH_SERVICE_URL=http://auth-service:8081
+      - TRANSACTION_SERVICE_URL=http://transaction-service:8082
+      - OCR_SERVICE_URL=http://ocr-service:8083
+    depends_on:
+      - config-server
+      - keycloak
+    networks:
+      - coinsight-network
+
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    ports:
+      - "8081:8081"
+    environment:
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - KEYCLOAK_URL=http://keycloak:8080
+      - DB_HOST=postgres
+    depends_on:
+      - config-server
+      - postgres
+      - keycloak
+    networks:
+      - coinsight-network
+
+  transaction-service:
+    build: ./transaction-service
+    container_name: transaction-service
+    ports:
+      - "8082:8082"
+    environment:
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - KEYCLOAK_URL=http://keycloak:8080
+      - DB_HOST=postgres
+      - KAFKA_SERVERS=kafka:29092
+    depends_on:
+      - config-server
+      - postgres
+      - keycloak
+      - kafka
+    networks:
+      - coinsight-network
+
+  ocr-service:
+    build: ./ocr-service
+    container_name: ocr-service
+    ports:
+      - "8083:8083"
+    environment:
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - KEYCLOAK_URL=http://keycloak:8080
+      - TRANSACTION_SERVICE_URL=http://transaction-service:8082
+      - AZURE_FORM_RECOGNIZER_ENDPOINT=${AZURE_FORM_RECOGNIZER_ENDPOINT}
+      - AZURE_FORM_RECOGNIZER_API_KEY=${AZURE_FORM_RECOGNIZER_API_KEY}
+    depends_on:
+      - config-server
+      - keycloak
+      - transaction-service
+    networks:
+      - coinsight-network
+
+volumes:
+  postgres-data:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  coinsight-network:
+    driver: bridge

@@ -1,0 +1,100 @@
+server:
+  port: 8080
+
+spring:
+  cloud:
+    gateway:
+      # default-filters:
+      #   - TokenRelay
+      routes:
+        - id: welcome-route
+          uri: ${GATEWAY_URL:http://localhost:8080}
+          predicates:
+            - Path=/
+          filters:
+            - SetPath=/
+        - id: public-auth-routes
+          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/auth/login, /api/auth/register
+          filters:
+            - StripPrefix=2
+        - id: auth-service
+          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - StripPrefix=2
+            - TokenRelay
+            - name: CircuitBreaker
+              args:
+                name: authServiceCircuitBreaker
+                fallbackUri: forward:/fallback/auth
+        # - id: transaction-service
+        #   uri: ${TRANSACTION_SERVICE_URL:http://localhost:8082}
+        #   predicates:
+        #     - Path=/api/transactions/**
+        #   filters:
+        #     - StripPrefix=2
+        # - id: ocr-service
+        #   uri: ${OCR_SERVICE_URL:http://localhost:8083}
+        #   predicates:
+        #     - Path=/api/ocr/**
+        #   filters:
+        #     - StripPrefix=2
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            client-id: coinsight-app
+            client-secret: ${KEYCLOAK_CLIENT_SECRET:qjcqpzF7tYmhGitMMQXOIJcmVJrJ2xPC}
+            authorization-grant-type: authorization_code
+            scope: openid
+        provider:
+          keycloak:
+            issuer-uri: ${KEYCLOAK_URL:http://localhost:8090}/realms/coinsight-realm
+            user-name-attribute: preferred_username
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_URL:http://localhost:8090}/realms/coinsight-realm
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        failureRateThreshold: 50
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: 2000
+        permittedNumberOfCallsInHalfOpenState: 5
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        waitDurationInOpenState: 30000
+    instances:
+      authServiceCircuitBreaker:
+        baseConfig: default
+      transactionServiceCircuitBreaker:
+        baseConfig: default
+      ocrServiceCircuitBreaker:
+        baseConfig: default
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 4s
+    instances:
+      authServiceCircuitBreaker:
+        baseConfig: default
+      transactionServiceCircuitBreaker:
+        baseConfig: default
+      ocrServiceCircuitBreaker:
+        baseConfig: default
+
+# keycloak:
+#   auth-server-url: ${KEYCLOAK_URL:http://localhost:8090}
+#   realm: ${KEYCLOAK_REALM:coinsight-realm}
+#   resource: ${KEYCLOAK_CLIENT:coinsight-app}
+#   public-client: false
+#   principal-attribute: preferred_username
+#   credentials:
+#     secret: ${KEYCLOAK_CLIENT_SECRET:your-client-secret}

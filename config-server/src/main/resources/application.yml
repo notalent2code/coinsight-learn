@@ -1,0 +1,69 @@
+# application.yml
+server:
+  port: 8888
+
+spring:
+  application:
+    name: config-server
+  main: 
+    allow-bean-definition-overriding: true
+  profiles:
+    active: native
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: ${CONFIG_REPO_URI:file:///home/miosha/code/bsi/ojt/coinsight/config-repo}
+    vault:
+      uri: ${VAULT_URI:http://localhost:8200}
+      authentication: token
+      token: ${VAULT_TOKEN:myroot}
+      kv:
+        enabled: true
+        backend: secret
+        default-context: application
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+# # application.yml
+# server:
+#   port: 8888
+
+# spring:
+#   application:
+#     name: config-server
+#   main: 
+#     allow-bean-definition-overriding: true
+#   cloud:
+#     config:
+#       server:
+#         git:
+#           uri: ${CONFIG_REPO_URI:file:///tmp/config-repo}
+#           default-label: main
+#           search-paths: '{application}'
+#     vault:
+#       uri: ${VAULT_URI:http://localhost:8200}
+#       authentication: token
+#       token: ${VAULT_TOKEN:myroot}
+#       kv:
+#         enabled: true
+#         backend: secret
+#         default-context: application
+
+# management:
+#   endpoints:
+#     web:
+#       exposure:
+#         include: health,info,metrics,prometheus
+#   prometheus:
+#     metrics:
+#       export:
+#         enabled: true

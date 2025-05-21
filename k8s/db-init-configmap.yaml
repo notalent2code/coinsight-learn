@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-init-scripts
+data:
+  init.sql: |
+    CREATE TABLE users (
+        id UUID PRIMARY KEY,
+        keycloak_id VARCHAR(36) UNIQUE,
+        email VARCHAR(255) UNIQUE,
+        full_name VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE transaction_categories (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(20) UNIQUE,
+        type VARCHAR(10) CHECK (type IN ('income', 'expense'))
+    );
+
+    INSERT INTO transaction_categories (name, type) VALUES 
+        ('transfer', 'income'),
+        ('topup', 'income'),
+        ('bills', 'expense'),
+        ('needs', 'expense'),
+        ('transport', 'expense'),
+        ('shopping', 'expense'),
+        ('others', 'expense');
+
+    CREATE TABLE transactions (
+        id UUID PRIMARY KEY,
+        user_id UUID REFERENCES users(id),
+        amount DECIMAL(12, 2) NOT NULL,
+        category_id INTEGER REFERENCES transaction_categories(id),
+        description TEXT,
+        receipt_text TEXT,
+        transaction_date TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX idx_transactions_user_id ON transactions(user_id);
+    CREATE INDEX idx_transactions_date ON transactions(transaction_date);

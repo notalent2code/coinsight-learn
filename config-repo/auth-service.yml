@@ -1,0 +1,21 @@
+server:
+  port: 8081
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:coinsight}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    
+keycloak:
+  auth-server-url: ${KEYCLOAK_URL:http://localhost:8090}
+  realm: ${KEYCLOAK_REALM:coinsight-realm}
+  resource: ${KEYCLOAK_CLIENT:auth-service}
+  public-client: false
+  principal-attribute: preferred_username
+  credentials:
+    secret: ${KEYCLOAK_CLIENT_SECRET:OgRK7as6bjDxNKT5qpAbAtaMKsg7c1bh}

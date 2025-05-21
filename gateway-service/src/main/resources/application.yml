@@ -1,0 +1,65 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: gateway-service
+  config:
+    import: configserver:http://localhost:8888
+  cloud:
+    vault:
+      enabled: false
+  security:
+    oauth2:
+      client:
+          registration:
+            keycloak:
+              client-id: coinsight-app
+              client-secret: ${KEYCLOAK_CLIENT_SECRET:qjcqpzF7tYmhGitMMQXOIJcmVJrJ2xPC}
+              authorization-grant-type: authorization_code
+              scope: openid
+              redirect-uri: "{baseUrl}/login/oauth2/code/keycloak"
+          provider:
+            keycloak:
+              issuer-uri: ${KEYCLOAK_URL:http://localhost:8090}/realms/${KEYCLOAK_REALM:coinsight-realm}
+              user-name-attribute: preferred_username
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_URL:http://localhost:8090}/realms/${KEYCLOAK_REALM:coinsight-realm}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      authServiceCircuitBreaker:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30000
+        permittedNumberOfCallsInHalfOpenState: 5
+      transactionServiceCircuitBreaker:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30000
+        permittedNumberOfCallsInHalfOpenState: 5
+      ocrServiceCircuitBreaker:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30000
+        permittedNumberOfCallsInHalfOpenState: 5
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+services:
+  auth-service:
+    url: ${AUTH_SERVICE_URL:http://localhost:8081}
+  transaction-service:
+    url: ${TRANSACTION_SERVICE_URL:http://localhost:8082}
+  ocr-service:
+    url: ${OCR_SERVICE_URL:http://localhost:8083}
