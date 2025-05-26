@@ -7,12 +7,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 
-@FeignClient(name = "transaction-service", url = "${services.transaction-service.url}", 
-             configuration = FeignClientConfig.class)
+@FeignClient(name = "transaction-client", url = "${services.transaction-service.url}")
 public interface TransactionServiceClient {
 
-    @PostMapping("/api/transactions/ocr")
+    @PostMapping("/api/transactions")
     TransactionResponse createTransactionFromOcr(
-            @RequestHeader("Authorization") String authToken, 
+            @RequestHeader("Authorization") String authToken,
             @RequestBody TransactionCreationRequest request);
 }

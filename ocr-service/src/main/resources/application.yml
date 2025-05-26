@@ -4,20 +4,27 @@ server:
 spring:
   application:
     name: ocr-service
+  config:
+    import: configserver:http://localhost:8888
+  cloud:
+    vault:
+      enabled: false
+    config:
+      fail-fast: true
   security:
     oauth2:
       resourceserver:
         jwt:
           issuer-uri: ${KEYCLOAK_URL:http://localhost:8090}/realms/${KEYCLOAK_REALM:coinsight-realm}
 
-azure:
-  form-recognizer:
-    endpoint: ${AZURE_FORM_RECOGNIZER_ENDPOINT}
-    api-key: ${AZURE_FORM_RECOGNIZER_API_KEY}
+# azure:
+#   form-recognizer:
+#     endpoint: ${AZURE_FORM_RECOGNIZER_ENDPOINT}
+#     api-key: ${AZURE_FORM_RECOGNIZER_API_KEY}
 
-services:
-  transaction-service:
-    url: ${TRANSACTION_SERVICE_URL:http://localhost:8082}
+# services:
+#   transaction-service:
+#     url: ${TRANSACTION_SERVICE_URL:http://localhost:8082}
 
 resilience4j:
   circuitbreaker:
@@ -33,7 +40,13 @@ management:
     web:
       exposure:
         include: health,info,metrics,prometheus
-  metrics:
-    export:
-      prometheus:
+  prometheus:
+    metrics:
+      export:
         enabled: true
+
+logging:
+  level:
+    id.co.bankbsi.coinsight.ocr: DEBUG
+    org.springframework.security: INFO
+    org.springframework.web: INFO

@@ -37,7 +37,7 @@ public class Transaction {
     @Column(name = "description")
     private String description;
     
-    @Column(name = "receipt_text")
+    @Column(name = "receipt_text", columnDefinition = "TEXT")
     private String receiptText;
     
     @Column(name = "transaction_date")

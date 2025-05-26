@@ -1,10 +1,11 @@
-FROM eclipse-temurin:17-jdk AS builder
+FROM maven:3.9-amazoncorretto-17 AS builder
 WORKDIR /app
-COPY . .
-RUN ./mvnw clean package -DskipTests
+# Copy the entire project
+COPY . /app/
+# Build the specific module
+RUN mvn clean package -pl transaction-service -am -DskipTests
 
-FROM eclipse-temurin:17-jre
+FROM amazoncorretto:17-alpine
 WORKDIR /app
-COPY --from=builder /app/target/*.jar app.jar
-EXPOSE 8082
+COPY --from=builder /app/transaction-service/target/*.jar app.jar
 ENTRYPOINT ["java", "-jar", "app.jar"]

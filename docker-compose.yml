@@ -2,18 +2,50 @@ version: '3.8'
 
 services:
   # Infrastructure
+  # Postgres for Keycloak (keeping original for Keycloak compatibility)
   postgres:
     image: postgres:17-alpine
     container_name: postgres
     ports:
-      - "5432:5432"
+      - '5432:5432'
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: coinsight
+      POSTGRES_DB: keycloak
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./database:/docker-entrypoint-initdb.d
+    networks:
+      - coinsight-network
+
+  # Auth service database
+  auth-db:
+    image: postgres:17-alpine
+    container_name: auth-db
+    ports:
+      - '5433:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: auth_service
+    volumes:
+      - auth-postgres-data:/var/lib/postgresql/data
+      - ./database/auth-init:/docker-entrypoint-initdb.d
+    networks:
+      - coinsight-network
+
+  # Transaction service database
+  transaction-db:
+    image: postgres:17-alpine
+    container_name: transaction-db
+    ports:
+      - '5434:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: transaction_service
+    volumes:
+      - transaction-postgres-data:/var/lib/postgresql/data
+      - ./database/transaction-init:/docker-entrypoint-initdb.d
     networks:
       - coinsight-network
 
@@ -21,7 +53,7 @@ services:
     image: quay.io/keycloak/keycloak:24.0.1
     container_name: keycloak
     ports:
-      - "8090:8080"
+      - '8090:8080'
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
@@ -44,7 +76,7 @@ services:
     image: hashicorp/vault:1.19
     container_name: vault
     ports:
-      - "8200:8200"
+      - '8200:8200'
     environment:
       VAULT_DEV_ROOT_TOKEN_ID: myroot
       VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
@@ -54,10 +86,10 @@ services:
       - coinsight-network
 
   kafka:
-    image: confluentinc/cp-kafka:7.4.0
+    image: confluentinc/cp-kafka:7.9.1
     container_name: kafka
     ports:
-      - "9092:9092"
+      - '9092:9092'
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -71,21 +103,33 @@ services:
       - coinsight-network
 
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.4.0
+    image: confluentinc/cp-zookeeper:7.9.1
     container_name: zookeeper
     ports:
-      - "2181:2181"
+      - '2181:2181'
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     networks:
       - coinsight-network
 
+  # Add Redis service
+  redis:
+    image: redis:8.0.1
+    container_name: redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+    command: redis-server --save 20 1 --loglevel warning
+    networks:
+      - coinsight-network
+
   prometheus:
-    image: prom/prometheus:v2.50.0
+    image: prom/prometheus:v3.4.0
     container_name: prometheus
     ports:
-      - "9090:9090"
+      - '9090:9090'
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
@@ -94,14 +138,16 @@ services:
       - '--storage.tsdb.path=/prometheus'
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Allow container to access host network
     networks:
       - coinsight-network
 
   grafana:
-    image: grafana/grafana:10.3.0
+    image: grafana/grafana:12.0.1
     container_name: grafana
     ports:
-      - "3000:3000"
+      - '9091:3000'
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
@@ -117,7 +163,7 @@ services:
     build: ./config-server
     container_name: config-server
     ports:
-      - "8888:8888"
+      - '8888:8888'
     environment:
       - CONFIG_REPO_URI=file:///tmp/config-repo
       - VAULT_URI=http://vault:8200
@@ -133,49 +179,59 @@ services:
     build: ./gateway-service
     container_name: gateway-service
     ports:
-      - "8080:8080"
+      - '8080:8080'
     environment:
       - CONFIG_SERVER_URI=http://config-server:8888
       - KEYCLOAK_URL=http://keycloak:8080
       - AUTH_SERVICE_URL=http://auth-service:8081
       - TRANSACTION_SERVICE_URL=http://transaction-service:8082
       - OCR_SERVICE_URL=http://ocr-service:8083
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     depends_on:
       - config-server
       - keycloak
+      - redis
     networks:
       - coinsight-network
 
+    # Update auth-service configuration
   auth-service:
     build: ./auth-service
     container_name: auth-service
     ports:
-      - "8081:8081"
+      - '8081:8081'
     environment:
       - CONFIG_SERVER_URI=http://config-server:8888
       - KEYCLOAK_URL=http://keycloak:8080
-      - DB_HOST=postgres
+      - DB_HOST=auth-db
+      - DB_PORT=5432
     depends_on:
       - config-server
-      - postgres
+      - auth-db
       - keycloak
     networks:
       - coinsight-network
 
+  # Update transaction-service configuration
   transaction-service:
     build: ./transaction-service
     container_name: transaction-service
     ports:
-      - "8082:8082"
+      - '8082:8082'
     environment:
       - CONFIG_SERVER_URI=http://config-server:8888
       - KEYCLOAK_URL=http://keycloak:8080
-      - DB_HOST=postgres
+      - DB_HOST=transaction-db
+      - DB_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - KAFKA_SERVERS=kafka:29092
     depends_on:
       - config-server
-      - postgres
+      - transaction-db
       - keycloak
+      - redis
       - kafka
     networks:
       - coinsight-network
@@ -184,13 +240,13 @@ services:
     build: ./ocr-service
     container_name: ocr-service
     ports:
-      - "8083:8083"
+      - '8083:8083'
     environment:
       - CONFIG_SERVER_URI=http://config-server:8888
       - KEYCLOAK_URL=http://keycloak:8080
       - TRANSACTION_SERVICE_URL=http://transaction-service:8082
-      - AZURE_FORM_RECOGNIZER_ENDPOINT=${AZURE_FORM_RECOGNIZER_ENDPOINT}
-      - AZURE_FORM_RECOGNIZER_API_KEY=${AZURE_FORM_RECOGNIZER_API_KEY}
+      # - AZURE_FORM_RECOGNIZER_ENDPOINT=${AZURE_FORM_RECOGNIZER_ENDPOINT}
+      # - AZURE_FORM_RECOGNIZER_API_KEY=${AZURE_FORM_RECOGNIZER_API_KEY}
     depends_on:
       - config-server
       - keycloak
@@ -200,6 +256,9 @@ services:
 
 volumes:
   postgres-data:
+  auth-postgres-data:
+  transaction-postgres-data:
+  redis-data:
   prometheus-data:
   grafana-data:
 

@@ -2,10 +2,15 @@ server:
   port: 8080
 
 spring:
+  # Add Redis configuration for rate limiting
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+
   cloud:
     gateway:
-      # default-filters:
-      #   - TokenRelay
       routes:
         - id: welcome-route
           uri: ${GATEWAY_URL:http://localhost:8080}
@@ -13,35 +18,84 @@ spring:
             - Path=/
           filters:
             - SetPath=/
+
         - id: public-auth-routes
           uri: ${AUTH_SERVICE_URL:http://localhost:8081}
           predicates:
-            - Path=/api/auth/login, /api/auth/register
+            - Path=/api/auth/login,/api/auth/register
           filters:
-            - StripPrefix=2
-        - id: auth-service
-          uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@ipKeyResolver}"
+
+         # Test routes
+        - id: test-routes
+          uri: ${GATEWAY_URL:http://localhost:8080}
           predicates:
-            - Path=/api/auth/**
+            - Path=/test/**
+
+        # - id: test-token-relay
+        #   uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+        #   predicates:
+        #     - Path=/api/relay-test/**
+        #   filters:
+        #     - TokenRelay
+
+        # - id: auth-service
+        #   uri: ${AUTH_SERVICE_URL:http://localhost:8081}
+        #   predicates:
+        #     - Path=/api/auth/**
+        #   filters:
+        #     - StripPrefix=2
+        #     - TokenRelay
+        #     - name: CircuitBreaker
+        #       args:
+        #         name: authServiceCircuitBreaker
+        #         fallbackUri: forward:/fallback/auth
+        #     - name: RequestRateLimiter
+        #       args:
+        #         redis-rate-limiter.replenishRate: 10
+        #         redis-rate-limiter.burstCapacity: 20
+        #         redis-rate-limiter.requestedTokens: 1
+        #         key-resolver: "#{@userKeyResolver}"
+
+        - id: transaction-service
+          uri: ${TRANSACTION_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/transactions/**
           filters:
-            - StripPrefix=2
             - TokenRelay
             - name: CircuitBreaker
               args:
-                name: authServiceCircuitBreaker
-                fallbackUri: forward:/fallback/auth
-        # - id: transaction-service
-        #   uri: ${TRANSACTION_SERVICE_URL:http://localhost:8082}
-        #   predicates:
-        #     - Path=/api/transactions/**
-        #   filters:
-        #     - StripPrefix=2
-        # - id: ocr-service
-        #   uri: ${OCR_SERVICE_URL:http://localhost:8083}
-        #   predicates:
-        #     - Path=/api/ocr/**
-        #   filters:
-        #     - StripPrefix=2
+                name: transactionServiceCircuitBreaker
+                fallbackUri: forward:/fallback/transaction
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 15
+                redis-rate-limiter.burstCapacity: 30
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@userKeyResolver}"
+        
+        - id: ocr-service
+          uri: ${OCR_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/ocr/**
+          filters:
+            - TokenRelay
+            - name: CircuitBreaker
+              args:
+                name: ocrServiceCircuitBreaker
+                fallbackUri: forward:/fallback/ocr
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 2
+                redis-rate-limiter.burstCapacity: 5
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@userKeyResolver}"
+
   security:
     oauth2:
       client:
@@ -89,12 +143,3 @@ resilience4j:
         baseConfig: default
       ocrServiceCircuitBreaker:
         baseConfig: default
-
-# keycloak:
-#   auth-server-url: ${KEYCLOAK_URL:http://localhost:8090}
-#   realm: ${KEYCLOAK_REALM:coinsight-realm}
-#   resource: ${KEYCLOAK_CLIENT:coinsight-app}
-#   public-client: false
-#   principal-attribute: preferred_username
-#   credentials:
-#     secret: ${KEYCLOAK_CLIENT_SECRET:your-client-secret}

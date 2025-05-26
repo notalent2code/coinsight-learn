@@ -1,8 +1,13 @@
 package id.co.bankbsi.coinsight.ocr.service;
 
-import com.azure.ai.formrecognizer.DocumentAnalysisClient;
-import com.azure.ai.formrecognizer.models.*;
+import com.azure.ai.formrecognizer.documentanalysis.DocumentAnalysisClient;
+import com.azure.ai.formrecognizer.documentanalysis.models.*;
+import com.azure.core.util.BinaryData;
+import com.azure.core.util.polling.SyncPoller;
+
+import id.co.bankbsi.coinsight.ocr.client.CategoryClient;
 import id.co.bankbsi.coinsight.ocr.client.TransactionServiceClient;
+import id.co.bankbsi.coinsight.ocr.dto.CategoryDto;
 import id.co.bankbsi.coinsight.ocr.dto.OcrRequest;
 import id.co.bankbsi.coinsight.ocr.dto.OcrResponse;
 import id.co.bankbsi.coinsight.ocr.dto.TransactionCreationRequest;
@@ -13,9 +18,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.math.BigDecimal;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -25,52 +33,107 @@ public class OcrService {
 
     private final DocumentAnalysisClient documentAnalysisClient;
     private final TransactionServiceClient transactionServiceClient;
+    private final OpenAIService openAIService;
+    private final CategoryClient categoryClient;
+    // private final CategoryService categoryService;
 
+    /**
+     * Process a receipt from a file
+     */
     @CircuitBreaker(name = "processReceipt", fallbackMethod = "processReceiptFallback")
-    public OcrResponse processReceipt(OcrRequest request, String authToken) {
+    public OcrResponse processReceiptFromFile(OcrRequest request, String authToken) {
         try {
-            log.info("Processing receipt from URL: {}", request.getImageUrl());
+            log.info("Processing receipt from file: {}", request.getImagePath());
+            
+            // Verify the file exists
+            File file = new File(request.getImagePath());
+            if (!file.exists()) {
+                throw new OcrProcessingException("Receipt file not found");
+            }
             
             // Analyze receipt using Azure Form Recognizer
-            AnalyzeDocumentOptions options = new AnalyzeDocumentOptions()
-                    .setPages("1");
-            
             SyncPoller<OperationResult, AnalyzeResult> analyzeReceiptPoller =
-                    documentAnalysisClient.beginAnalyzeDocumentFromUrl("prebuilt-receipt", request.getImageUrl(), options);
+                    documentAnalysisClient.beginAnalyzeDocument(
+                            "prebuilt-receipt",
+                            BinaryData.fromFile(Paths.get(request.getImagePath())));
             
             AnalyzeResult receiptResults = analyzeReceiptPoller.getFinalResult();
             
-            // Extract data from receipt
-            String rawText = extractRawText(receiptResults);
-            BigDecimal extractedAmount = extractAmount(receiptResults);
-            LocalDateTime extractedDate = extractDate(receiptResults);
-            String merchantName = extractMerchantName(receiptResults);
-            Map<String, Object> extractedFields = extractAdditionalFields(receiptResults);
-            
-            log.info("Receipt processed successfully. Extracted amount: {}, date: {}, merchant: {}",
-                    extractedAmount, extractedDate, merchantName);
-            
-            // Create transaction record via Transaction Service
-            TransactionCreationRequest transactionRequest = TransactionCreationRequest.builder()
-                    .receiptText(rawText)
-                    .categoryId(request.getCategoryId())
-                    .build();
-            
-            TransactionResponse transactionResponse = transactionServiceClient.createTransactionFromOcr(authToken, transactionRequest);
-            
-            return OcrResponse.builder()
-                    .transactionId(transactionResponse.getId())
-                    .rawText(rawText)
-                    .extractedAmount(extractedAmount)
-                    .extractedDate(extractedDate)
-                    .merchantName(merchantName)
-                    .extractedFields(extractedFields)
-                    .build();
+            return processAnalyzeResult(receiptResults, request, authToken);
             
         } catch (Exception e) {
-            log.error("Error processing receipt: {}", e.getMessage(), e);
-            throw new OcrProcessingException("Failed to process receipt: " + e.getMessage());
+            log.error("Error processing receipt from file: {}", e.getMessage(), e);
+            throw new OcrProcessingException("Failed to process receipt: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Process a receipt from a URL
+     */
+    @CircuitBreaker(name = "processReceipt", fallbackMethod = "processReceiptFallback")
+    public OcrResponse processReceipt(OcrRequest request, String authToken) {
+        try {  
+            log.info("Processing receipt from URL: {}", request.getImageUrl());
+          
+            SyncPoller<OperationResult, AnalyzeResult> analyzeReceiptPoller =
+                    documentAnalysisClient.beginAnalyzeDocumentFromUrl(
+                            "prebuilt-receipt", 
+                            request.getImageUrl());
+            
+            AnalyzeResult receiptResults = analyzeReceiptPoller.getFinalResult();
+            
+            return processAnalyzeResult(receiptResults, request, authToken);
+            
+        } catch (Exception e) {
+            log.error("Error processing receipt from URL: {}", e.getMessage(), e);
+            throw new OcrProcessingException("Failed to process receipt: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Common method to process the analyze result from Form Recognizer
+     */
+    private OcrResponse processAnalyzeResult(AnalyzeResult receiptResults, OcrRequest request, String authToken) {
+        // Extract raw text from receipt
+        String rawText = extractRawText(receiptResults);
+        
+        if (rawText.trim().isEmpty()) {
+            throw new OcrProcessingException("No text could be extracted from the image");
+        }
+        
+        // Get all categories for the hybrid categorization approach
+        List<CategoryDto> categories = categoryClient.getCategories(authToken);
+        
+        // Process receipt text with hybrid approach (OpenAI + keyword matching)
+        TransactionCreationRequest transactionRequest = openAIService.processReceiptText(
+            rawText, request.getCategoryId(), categories);
+        
+        log.info("Transaction request created: {}", transactionRequest);
+
+        // Create transaction record via Transaction Service
+        TransactionResponse transactionResponse = transactionServiceClient.createTransactionFromOcr(
+            authToken, transactionRequest);
+        
+        // For response, extract more details to return to client
+        BigDecimal extractedAmount = transactionRequest.getAmount() != null ? 
+                transactionRequest.getAmount() : extractAmount(receiptResults);
+        LocalDateTime extractedDate = extractDate(receiptResults);
+        String merchantName = extractMerchantName(receiptResults);
+        Map<String, Object> extractedFields = extractAdditionalFields(receiptResults);
+        
+        log.info("Receipt processed successfully. Extracted amount: {}, date: {}, merchant: {}, description: {}, category: {}",
+                extractedAmount, extractedDate, merchantName, transactionRequest.getDescription(), 
+                transactionRequest.getCategoryId());
+        
+        return OcrResponse.builder()
+                .transactionId(transactionResponse.getId())
+                .rawText(rawText)
+                .extractedAmount(extractedAmount)
+                .extractedDate(extractedDate)
+                .merchantName(merchantName)
+                .categoryId(transactionRequest.getCategoryId())
+                .extractedFields(extractedFields)
+                .build();
     }
     
     public OcrResponse processReceiptFallback(OcrRequest request, String authToken, Throwable e) {
@@ -79,118 +142,36 @@ public class OcrService {
                 .rawText("OCR processing failed. Please try again later.")
                 .build();
     }
-    
-    private String extractRawText(AnalyzeResult result) {
-        StringBuilder text = new StringBuilder();
-        for (DocumentPage page : result.getPages()) {
+   
+    private String extractRawText(AnalyzeResult receiptResults) {
+        StringBuilder rawText = new StringBuilder();
+        for (DocumentPage page : receiptResults.getPages()) {
             for (DocumentLine line : page.getLines()) {
-                text.append(line.getContent()).append("\n");
+                rawText.append(line.getContent()).append("\n");
             }
         }
-        return text.toString();
+        return rawText.toString();
     }
-    
-    private BigDecimal extractAmount(AnalyzeResult result) {
-        // This is a simplified version. In a real-world application,
-        // you would look for specific fields like "total" in the receipt
-        try {
-            for (DocumentKeyValuePair kvp : result.getKeyValuePairs()) {
-                if (kvp.getKey() != null && 
-                        kvp.getKey().getContent().toLowerCase().contains("total")) {
-                    String valueText = kvp.getValue().getContent();
-                    // Clean up the string to extract just the number
-                    String numericValue = valueText.replaceAll("[^0-9.]", "");
-                    return new BigDecimal(numericValue);
-                }
-            }
-            
-            // If we couldn't find it in key-value pairs, try to find it in the raw text
-            for (DocumentPage page : result.getPages()) {
-                for (DocumentLine line : page.getLines()) {
-                    String lineText = line.getContent().toLowerCase();
-                    if (lineText.contains("total")) {
-                        // Extract numbers from this line
-                        String[] parts = lineText.split("\\s+");
-                        for (String part : parts) {
-                            // Try to parse any numeric-looking parts
-                            String numericPart = part.replaceAll("[^0-9.]", "");
-                            if (!numericPart.isEmpty()) {
-                                try {
-                                    return new BigDecimal(numericPart);
-                                } catch (NumberFormatException ignored) {
-                                    // Continue if this part isn't a valid number
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Failed to extract amount: {}", e.getMessage());
-        }
-        
-        return BigDecimal.ZERO;
+
+    private BigDecimal extractAmount(AnalyzeResult receiptResults) {
+        // Implement logic to extract amount from receipt results
+        return BigDecimal.ZERO; // Placeholder
     }
-    
-    private LocalDateTime extractDate(AnalyzeResult result) {
-        try {
-            // Try to find date in structured data
-            for (DocumentKeyValuePair kvp : result.getKeyValuePairs()) {
-                if (kvp.getKey() != null && 
-                        (kvp.getKey().getContent().toLowerCase().contains("date") ||
-                         kvp.getKey().getContent().toLowerCase().contains("time"))) {
-                    
-                    // This is simplified - in a real application you would apply
-                    // more sophisticated date parsing logic here
-                    return LocalDateTime.now();
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Failed to extract date: {}", e.getMessage());
-        }
-        
-        return LocalDateTime.now();
+
+    private LocalDateTime extractDate(AnalyzeResult receiptResults) {
+        // Implement logic to extract date from receipt results
+        return LocalDateTime.now(); // Placeholder
     }
-    
-    private String extractMerchantName(AnalyzeResult result) {
-        try {
-            for (DocumentKeyValuePair kvp : result.getKeyValuePairs()) {
-                if (kvp.getKey() != null && 
-                        (kvp.getKey().getContent().toLowerCase().contains("merchant") ||
-                         kvp.getKey().getContent().toLowerCase().contains("store") ||
-                         kvp.getKey().getContent().toLowerCase().contains("vendor"))) {
-                    return kvp.getValue().getContent();
-                }
-            }
-            
-            // If not found in key-value pairs, try the first few lines for a merchant name
-            if (!result.getPages().isEmpty()) {
-                DocumentPage firstPage = result.getPages().get(0);
-                if (!firstPage.getLines().isEmpty()) {
-                    // First line is often the merchant name in receipts
-                    return firstPage.getLines().get(0).getContent();
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Failed to extract merchant name: {}", e.getMessage());
-        }
-        
-        return "Unknown Merchant";
+
+    private String extractMerchantName(AnalyzeResult receiptResults) {
+        // Implement logic to extract merchant name from receipt results
+        return ""; // Placeholder
     }
-    
-    private Map<String, Object> extractAdditionalFields(AnalyzeResult result) {
+
+    private Map<String, Object> extractAdditionalFields(AnalyzeResult receiptResults) {
         Map<String, Object> fields = new HashMap<>();
-        
-        try {
-            for (DocumentKeyValuePair kvp : result.getKeyValuePairs()) {
-                if (kvp.getKey() != null && kvp.getValue() != null) {
-                    fields.put(kvp.getKey().getContent(), kvp.getValue().getContent());
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Failed to extract additional fields: {}", e.getMessage());
-        }
-        
+        // Implement logic to extract additional fields from receipt results
         return fields;
     }
+
 }

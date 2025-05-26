@@ -22,8 +22,8 @@
         <module>config-server</module>
         <module>gateway-service</module>
         <module>auth-service</module>
-        <!-- <module>transaction-service</module>
-        <module>ocr-service</module> -->
+        <module>transaction-service</module>
+        <module>ocr-service</module>
     </modules>
     
     <properties>

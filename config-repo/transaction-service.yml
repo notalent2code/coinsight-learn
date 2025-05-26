@@ -1,0 +1,69 @@
+server:
+  port: 8082
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5434}/${DB_NAME:transaction_service}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    # driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    # properties:
+    #   hibernate:
+    #     format_sql: true
+    #     dialect: org.hibernate.dialect.PostgreSQLDialect
+    # show-sql: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_URL:http://localhost:8090}/realms/${KEYCLOAK_REALM:coinsight-realm}
+    # Add Redis configuration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  
+
+# Keycloak configuration
+keycloak:
+  auth-server-url: ${KEYCLOAK_URL:http://localhost:8090}
+  realm: ${KEYCLOAK_REALM:coinsight-realm}
+  resource: ${KEYCLOAK_CLIENT:transaction-service}
+  public-client: false
+  principal-attribute: preferred_username
+  use-resource-role-mappings: true
+  bearer-only: true
+  credentials:
+    secret: ${KEYCLOAK_CLIENT_SECRET:61fkBYf9jBS4tT3hcSYtoKA75pr0BcKn}
+
+# # Eureka client configuration
+# eureka:
+#   client:
+#     serviceUrl:
+#       defaultZone: http://localhost:8761/eureka/
+#   instance:
+#     preferIpAddress: true
+#     hostname: localhost
+
+# Logging configuration
+logging:
+  level:
+    id.co.bankbsi.coinsight.transaction: DEBUG
+    org.springframework.security: INFO
+    org.springframework.web: INFO
+
+# # Application-specific settings
+# transaction:
+#   service:
+#     default-page-size: 20
+#     max-page-size: 100
+#     allowed-categories:
+#       - INCOME
+#       - EXPENSE
+#       - TRANSFER
+#     # Integration endpoints
+#     integration:
+#       auth-service-url: ${AUTH_SERVICE_URL:http://localhost:8081}

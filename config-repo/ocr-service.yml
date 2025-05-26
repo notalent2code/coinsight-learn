@@ -1,0 +1,51 @@
+server:
+  port: 8083
+
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_URL:http://localhost:8090}/realms/${KEYCLOAK_REALM:coinsight-realm}
+
+# Azure Form Recognizer configuration
+azure:
+  form-recognizer:
+    endpoint: ${AZURE_FORM_RECOGNIZER_ENDPOINT:https://coinsight-ocr.cognitiveservices.azure.com/}
+    api-key: ${AZURE_FORM_RECOGNIZER_API_KEY:2G2FhKKSMQIGInRgpEYKYZIrsHeJKPLPrLS9e6vnSJgu4LJwFM0tJQQJ99BEACqBBLyXJ3w3AAAAACOG0aZg}
+  openai:
+    endpoint: ${AZURE_OPENAI_ENDPOINT:https://rihla-maz4futt-eastus2.cognitiveservices.azure.com/}
+    api-key: ${AZURE_OPENAI_API_KEY:1IqZw7IsgY8qzgwH3XAxcEGp7qBCQThKmmo8VJVIL0Ics6jwZbScJQQJ99BEACHYHv6XJ3w3AAAAACOGxchg}
+    deployment-id: ${AZURE_OPENAI_DEPLOYMENT_ID:gpt-4.1}
+
+# Keycloak configuration
+keycloak:
+  auth-server-url: ${KEYCLOAK_URL:http://localhost:8090}
+  realm: ${KEYCLOAK_REALM:coinsight-realm}
+  resource: ${KEYCLOAK_CLIENT:ocr-service}
+  public-client: false
+  principal-attribute: preferred_username
+  use-resource-role-mappings: true
+  bearer-only: true
+  credentials:
+    secret: ${KEYCLOAK_CLIENT_SECRET:epNXpJWhzUqwH87VxspGLXh2hgC2mBkn}
+
+# Logging configuration
+logging:
+  level:
+    id.co.bankbsi.coinsight.transaction: DEBUG
+    org.springframework.security: INFO
+    org.springframework.web: INFO
+
+# Circuit breaker configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      processReceipt:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10000
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+

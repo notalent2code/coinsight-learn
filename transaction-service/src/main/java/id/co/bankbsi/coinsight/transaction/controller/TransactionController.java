@@ -25,13 +25,6 @@ public class TransactionController {
         TransactionResponse response = transactionService.createTransaction(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
-    
-    @PostMapping("/ocr")
-    public ResponseEntity<TransactionResponse> createTransactionFromOCR(@Valid @RequestBody OCRTransactionRequest request) {
-        UUID userId = transactionService.getCurrentUserId();
-        TransactionResponse response = transactionService.createTransactionFromOCR(userId, request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
 
     @GetMapping("/{id}")
     public ResponseEntity<TransactionResponse> getTransactionById(@PathVariable UUID id) {

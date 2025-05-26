@@ -17,6 +17,8 @@ public class TransactionRequest {
     private BigDecimal amount;
     private Integer categoryId;
     private String description;
+    // Add optional receiptText
+    private String receiptText;
     
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime transactionDate;

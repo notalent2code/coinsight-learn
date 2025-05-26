@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class OCRTransactionRequest {
+public class OcrTransactionRequest {
     private String receiptText;
     private Integer categoryId;
 }

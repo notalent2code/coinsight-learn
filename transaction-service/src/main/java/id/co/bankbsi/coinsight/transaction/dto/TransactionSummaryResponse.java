@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -13,7 +14,9 @@ import java.util.Map;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TransactionSummaryResponse {
+public class TransactionSummaryResponse implements Serializable {
+    private static final long serialVersionUID = 1L;
+    
     private BigDecimal totalIncome;
     private BigDecimal totalExpense;
     private BigDecimal balance;

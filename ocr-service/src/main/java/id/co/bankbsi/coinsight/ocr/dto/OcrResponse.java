@@ -20,5 +20,6 @@ public class OcrResponse {
     private BigDecimal extractedAmount;
     private LocalDateTime extractedDate;
     private String merchantName;
+    private Integer categoryId;
     private Map<String, Object> extractedFields;
 }

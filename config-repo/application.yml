@@ -1,9 +1,19 @@
+# Actuator endpoints for monitoring
 management:
   endpoints:
     web:
       exposure:
         include: health,info,metrics,prometheus
-  prometheus:
-    metrics:
-      export:
+  endpoint:
+    health:
+      show-details: always
+      probes:
         enabled: true
+
+services:
+  auth-service:
+    url: ${AUTH_SERVICE_URL:http://localhost:8081}
+  transaction-service:
+    url: ${TRANSACTION_SERVICE_URL:http://localhost:8082}
+  ocr-service:
+    url: ${OCR_SERVICE_URL:http://localhost:8083}
