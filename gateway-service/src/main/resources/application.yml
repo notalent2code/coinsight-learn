@@ -63,3 +63,7 @@ services:
     url: ${TRANSACTION_SERVICE_URL:http://localhost:8082}
   ocr-service:
     url: ${OCR_SERVICE_URL:http://localhost:8083}
+  budget-service:
+    url: ${BUDGET_SERVICE_URL:http://localhost:8084}
+  notification-service:
+    url: ${NOTIFICATION_SERVICE_URL:http://localhost:8085}

@@ -1,0 +1,102 @@
+server:
+  port: 8085
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5436}/${DB_NAME:notification_service}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: false
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_URL:http://localhost:8090}/realms/${KEYCLOAK_REALM:coinsight-realm}
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    consumer:
+      group-id: notification-service
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "id.co.bankbsi.coinsight.*"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+    default-encoding: UTF-8
+
+# Keycloak configuration
+keycloak:
+  auth-server-url: ${KEYCLOAK_URL:http://localhost:8090}
+  realm: ${KEYCLOAK_REALM:coinsight-realm}
+  resource: ${KEYCLOAK_CLIENT:notification-service}
+  public-client: false
+  principal-attribute: preferred_username
+  use-resource-role-mappings: true
+  bearer-only: true
+  credentials:
+    secret: ${KEYCLOAK_CLIENT_SECRET:HmPlEAIi4rJA5VZAnCX822wEjdXaXc8o}
+
+# Service endpoints
+services:
+  auth-service:
+    url: ${AUTH_SERVICE_URL:http://localhost:8081}
+  budget-service:
+    url: ${BUDGET_SERVICE_URL:http://localhost:8084}
+
+# Logging configuration
+logging:
+  level:
+    id.co.bankbsi.coinsight.notification: DEBUG
+    org.springframework.security: INFO
+    org.springframework.kafka: INFO
+    org.springframework.web: INFO
+    org.springframework.mail: DEBUG
+
+# Notification service specific configuration
+notification:
+  service:
+    default-page-size: 20
+    max-page-size: 100
+    email:
+      from: noreply@coinsight.com
+      retry-attempts: 3
+      retry-delay-ms: 5000
+    templates:
+      budget-warning:
+        subject: "Budget Alert: {budgetName}"
+        enabled: true
+      budget-exceeded:
+        subject: "Budget Exceeded: {budgetName}"
+        enabled: true
+      weekly-summary:
+        subject: "Weekly Spending Summary"
+        enabled: true
+        schedule: "0 0 8 * * MON" # Every Monday at 8 AM
+    cleanup:
+      old-notifications-days: 30
+      cleanup-schedule: "0 0 2 * * *" # Every day at 2 AM
+

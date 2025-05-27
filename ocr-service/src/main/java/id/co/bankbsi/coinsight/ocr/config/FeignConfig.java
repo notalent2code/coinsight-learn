@@ -7,16 +7,16 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class FeignConfig {
 
-    @Bean
-    public ErrorDecoder errorDecoder() {
-        return new FeignErrorDecoder();
-    }
+  @Bean
+  public ErrorDecoder errorDecoder() {
+    return new FeignErrorDecoder();
+  }
 
-    public static class FeignErrorDecoder implements ErrorDecoder {
-        @Override
-        public Exception decode(String methodKey, feign.Response response) {
-            // Log the error
-            return new RuntimeException("Error calling service: " + response.reason());
-        }
+  public static class FeignErrorDecoder implements ErrorDecoder {
+    @Override
+    public Exception decode(String methodKey, feign.Response response) {
+      // Log the error
+      return new RuntimeException("Error calling service: " + response.reason());
     }
+  }
 }

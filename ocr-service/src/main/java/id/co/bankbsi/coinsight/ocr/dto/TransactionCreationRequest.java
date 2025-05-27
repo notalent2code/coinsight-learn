@@ -1,19 +1,18 @@
 package id.co.bankbsi.coinsight.ocr.dto;
 
+import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.math.BigDecimal;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class TransactionCreationRequest {
-    private String receiptText;
-    private Integer categoryId;
-    private BigDecimal amount;
-    private String description;
+  private String receiptText;
+  private Integer categoryId;
+  private BigDecimal amount;
+  private String description;
 }

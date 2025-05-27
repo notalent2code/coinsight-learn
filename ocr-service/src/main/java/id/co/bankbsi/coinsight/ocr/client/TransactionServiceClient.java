@@ -10,8 +10,8 @@ import org.springframework.web.bind.annotation.RequestHeader;
 @FeignClient(name = "transaction-client", url = "${services.transaction-service.url}")
 public interface TransactionServiceClient {
 
-    @PostMapping("/api/transactions")
-    TransactionResponse createTransactionFromOcr(
-            @RequestHeader("Authorization") String authToken,
-            @RequestBody TransactionCreationRequest request);
+  @PostMapping("/api/transactions")
+  TransactionResponse createTransactionFromOcr(
+      @RequestHeader("Authorization") String authToken,
+      @RequestBody TransactionCreationRequest request);
 }

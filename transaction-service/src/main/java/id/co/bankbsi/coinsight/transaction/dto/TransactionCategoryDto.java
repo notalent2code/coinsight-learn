@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TransactionCategoryDto {
-    private Integer id;
-    private String name;
-    private String type;
+  private Integer id;
+  private String name;
+  private String type;
 }

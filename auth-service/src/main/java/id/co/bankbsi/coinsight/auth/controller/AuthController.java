@@ -20,19 +20,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final KeycloakService keycloakService;
-    private final UserService userService;
+  private final KeycloakService keycloakService;
+  private final UserService userService;
 
-    @PostMapping("/register")
-    public ResponseEntity<UserResponse> registerUser(@Valid @RequestBody UserRegistrationRequest request) {
-        String keycloakId = this.keycloakService.createKeycloakUser(request);
-        UserResponse userResponse = this.userService.registerUser(request, keycloakId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(userResponse);
-    }
+  @PostMapping("/register")
+  public ResponseEntity<UserResponse> registerUser(
+      @Valid @RequestBody UserRegistrationRequest request) {
+    String keycloakId = this.keycloakService.createKeycloakUser(request);
+    UserResponse userResponse = this.userService.registerUser(request, keycloakId);
+    return ResponseEntity.status(HttpStatus.CREATED).body(userResponse);
+  }
 
-    @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        AuthResponse response = this.keycloakService.authenticate(request.getEmail(), request.getPassword());
-        return ResponseEntity.ok(response);
-    }
+  @PostMapping("/login")
+  public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+    AuthResponse response =
+        this.keycloakService.authenticate(request.getEmail(), request.getPassword());
+    return ResponseEntity.ok(response);
+  }
 }

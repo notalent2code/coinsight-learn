@@ -12,18 +12,20 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class RequestLoggingFilter implements GlobalFilter, Ordered {
 
-    @Override
-    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        log.info("Request: {} {}", exchange.getRequest().getMethod(), 
-                exchange.getRequest().getPath());
-        return chain.filter(exchange)
-                .then(Mono.fromRunnable(() -> {
-                    log.info("Response status: {}", exchange.getResponse().getStatusCode());
+  @Override
+  public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+    log.info("Request: {} {}", exchange.getRequest().getMethod(), exchange.getRequest().getPath());
+    return chain
+        .filter(exchange)
+        .then(
+            Mono.fromRunnable(
+                () -> {
+                  log.info("Response status: {}", exchange.getResponse().getStatusCode());
                 }));
-    }
+  }
 
-    @Override
-    public int getOrder() {
-        return Ordered.HIGHEST_PRECEDENCE;
-    }
+  @Override
+  public int getOrder() {
+    return Ordered.HIGHEST_PRECEDENCE;
+  }
 }

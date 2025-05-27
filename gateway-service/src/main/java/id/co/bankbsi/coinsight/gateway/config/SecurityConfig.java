@@ -15,38 +15,43 @@ import org.springframework.security.web.server.authentication.logout.ServerLogou
 @EnableWebFluxSecurity
 public class SecurityConfig {
 
-    private final ReactiveClientRegistrationRepository clientRegistrationRepository;
+  private final ReactiveClientRegistrationRepository clientRegistrationRepository;
 
-    public SecurityConfig(ReactiveClientRegistrationRepository clientRegistrationRepository) {
-        this.clientRegistrationRepository = clientRegistrationRepository;
-    }
+  public SecurityConfig(ReactiveClientRegistrationRepository clientRegistrationRepository) {
+    this.clientRegistrationRepository = clientRegistrationRepository;
+  }
 
-    @Bean
-    public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
-        return http
-                .csrf(csrf -> csrf.disable())
-                .authorizeExchange(exchanges -> exchanges
-                        // Public endpoints
-                        .pathMatchers("/", "/actuator/**", "/test/public", "/test/headers").permitAll()
-                        .pathMatchers("/api/auth/login", "/api/auth/register").permitAll()
-                        // Protected endpoints
-                        .pathMatchers("/test/authenticated", "/test/token-info", "/test/token-relay-test")
-                        .authenticated()
-                        .anyExchange().authenticated())
-                .oauth2Login(withDefaults())
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt())
-                .build();
-    }
+  @Bean
+  public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
+    return http.csrf(csrf -> csrf.disable())
+        .authorizeExchange(
+            exchanges ->
+                exchanges
+                    // Public endpoints
+                    .pathMatchers("/", "/actuator/**", "/test/public", "/test/headers")
+                    .permitAll()
+                    .pathMatchers("/api/auth/login", "/api/auth/register")
+                    .permitAll()
+                    // Protected endpoints
+                    .pathMatchers(
+                        "/test/authenticated", "/test/token-info", "/test/token-relay-test")
+                    .authenticated()
+                    .anyExchange()
+                    .authenticated())
+        .oauth2Login(withDefaults())
+        .oauth2ResourceServer(oauth2 -> oauth2.jwt())
+        .build();
+  }
 
-    @Bean
-    public ServerLogoutSuccessHandler oidcLogoutSuccessHandler() {
-        OidcClientInitiatedServerLogoutSuccessHandler oidcLogoutSuccessHandler = new OidcClientInitiatedServerLogoutSuccessHandler(
-                clientRegistrationRepository);
+  @Bean
+  public ServerLogoutSuccessHandler oidcLogoutSuccessHandler() {
+    OidcClientInitiatedServerLogoutSuccessHandler oidcLogoutSuccessHandler =
+        new OidcClientInitiatedServerLogoutSuccessHandler(clientRegistrationRepository);
 
-        // Sets the location that the End-User's User Agent will be redirected to
-        // after the logout has been performed at the Provider
-        oidcLogoutSuccessHandler.setPostLogoutRedirectUri("{baseUrl}");
+    // Sets the location that the End-User's User Agent will be redirected to
+    // after the logout has been performed at the Provider
+    oidcLogoutSuccessHandler.setPostLogoutRedirectUri("{baseUrl}");
 
-        return oidcLogoutSuccessHandler;
-    }
+    return oidcLogoutSuccessHandler;
+  }
 }

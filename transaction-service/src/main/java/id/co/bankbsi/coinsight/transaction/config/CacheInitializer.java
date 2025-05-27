@@ -11,14 +11,17 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class CacheInitializer implements CommandLineRunner {
 
-    private final CacheManager cacheManager;
-    
-    @Override
-    public void run(String... args) {
-        log.info("Clearing all cache on startup");
-        cacheManager.getCacheNames().forEach(cacheName -> {
-            log.debug("Clearing cache: {}", cacheName);
-            cacheManager.getCache(cacheName).clear();
-        });
-    }
+  private final CacheManager cacheManager;
+
+  @Override
+  public void run(String... args) {
+    log.info("Clearing all cache on startup");
+    cacheManager
+        .getCacheNames()
+        .forEach(
+            cacheName -> {
+              log.debug("Clearing cache: {}", cacheName);
+              cacheManager.getCache(cacheName).clear();
+            });
+  }
 }

@@ -96,6 +96,42 @@ spring:
                 redis-rate-limiter.requestedTokens: 1
                 key-resolver: "#{@userKeyResolver}"
 
+        # Budget Service Routes
+        - id: budget-service
+          uri: ${BUDGET_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/api/budgets/**
+          filters:
+            - TokenRelay
+            - name: CircuitBreaker
+              args:
+                name: budgetServiceCircuitBreaker
+                fallbackUri: forward:/fallback/budget
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 20
+                redis-rate-limiter.burstCapacity: 40
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@userKeyResolver}"
+
+        # Notification Service Routes
+        - id: notification-service
+          uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8085}
+          predicates:
+            - Path=/api/notifications/**
+          filters:
+            - TokenRelay
+            - name: CircuitBreaker
+              args:
+                name: notificationServiceCircuitBreaker
+                fallbackUri: forward:/fallback/notification
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 20
+                redis-rate-limiter.burstCapacity: 40
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@userKeyResolver}"
+
   security:
     oauth2:
       client:
@@ -132,6 +168,10 @@ resilience4j:
         baseConfig: default
       ocrServiceCircuitBreaker:
         baseConfig: default
+      budgetServiceCircuitBreaker:
+        baseConfig: default
+      notificationServiceCircuitBreaker:
+        baseConfig: default
   timelimiter:
     configs:
       default:
@@ -142,4 +182,8 @@ resilience4j:
       transactionServiceCircuitBreaker:
         baseConfig: default
       ocrServiceCircuitBreaker:
+        baseConfig: default
+      budgetServiceCircuitBreaker:
+        baseConfig: default
+      notificationServiceCircuitBreaker:
         baseConfig: default

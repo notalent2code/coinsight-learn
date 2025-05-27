@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class OcrRequest {
-    private String imageUrl;
-    private String imagePath;
-    private Integer categoryId;
+  private String imageUrl;
+  private String imagePath;
+  private Integer categoryId;
 }

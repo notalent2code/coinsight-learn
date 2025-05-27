@@ -49,6 +49,38 @@ services:
     networks:
       - coinsight-network
 
+  # Add budget service database
+  budget-db:
+    image: postgres:17-alpine
+    container_name: budget-db
+    ports:
+      - '5435:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: budget_service
+    volumes:
+      - budget-postgres-data:/var/lib/postgresql/data
+      - ./database/budget-init:/docker-entrypoint-initdb.d
+    networks:
+      - coinsight-network
+
+  # Add notification service database  
+  notification-db:
+    image: postgres:17-alpine
+    container_name: notification-db
+    ports:
+      - '5436:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: notification_service
+    volumes:
+      - notification-postgres-data:/var/lib/postgresql/data
+      - ./database/notification-init:/docker-entrypoint-initdb.d
+    networks:
+      - coinsight-network
+
   keycloak:
     image: quay.io/keycloak/keycloak:24.0.1
     container_name: keycloak
@@ -158,6 +190,16 @@ services:
     networks:
       - coinsight-network
 
+  # Add MailHog for email testing
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: mailhog
+    ports:
+      - '1025:1025'  # SMTP port
+      - '8025:8025'  # Web UI port
+    networks:
+      - coinsight-network
+
   # Microservices
   config-server:
     build: ./config-server
@@ -186,6 +228,8 @@ services:
       - AUTH_SERVICE_URL=http://auth-service:8081
       - TRANSACTION_SERVICE_URL=http://transaction-service:8082
       - OCR_SERVICE_URL=http://ocr-service:8083
+      - BUDGET_SERVICE_URL=http://budget-service:8084
+      - NOTIFICATION_SERVICE_URL=http://notification-service:8085
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     depends_on:
@@ -253,11 +297,58 @@ services:
       - transaction-service
     networks:
       - coinsight-network
+  
+  # Budget Service
+  budget-service:
+    build: ./budget-service
+    container_name: budget-service
+    ports:
+      - '8084:8084'
+    environment:
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - KEYCLOAK_URL=http://keycloak:8080
+      - DB_HOST=budget-db
+      - DB_PORT=5432
+      - DB_NAME=budget_service
+      - KAFKA_SERVERS=kafka:29092
+    depends_on:
+      - config-server
+      - budget-db
+      - keycloak
+      - kafka
+    networks:
+      - coinsight-network
+
+  # Notification Service
+  notification-service:
+    build: ./notification-service
+    container_name: notification-service
+    ports:
+      - '8085:8085'
+    environment:
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - KEYCLOAK_URL=http://keycloak:8080
+      - DB_HOST=notification-db
+      - DB_PORT=5432
+      - DB_NAME=notification_service
+      - KAFKA_SERVERS=kafka:29092
+      - MAIL_HOST=mailhog
+      - MAIL_PORT=1025
+    depends_on:
+      - config-server
+      - notification-db
+      - keycloak
+      - kafka
+      - mailhog
+    networks:
+      - coinsight-network
 
 volumes:
   postgres-data:
   auth-postgres-data:
   transaction-postgres-data:
+  budget-postgres-data:
+  notification-postgres-data:
   redis-data:
   prometheus-data:
   grafana-data:

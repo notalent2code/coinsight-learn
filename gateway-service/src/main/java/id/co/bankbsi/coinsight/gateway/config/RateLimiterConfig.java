@@ -14,58 +14,61 @@ import reactor.core.publisher.Mono;
 @Configuration
 public class RateLimiterConfig {
 
-    @Bean
-    @Primary
-    public KeyResolver userKeyResolver() {
-        return exchange -> ReactiveSecurityContextHolder.getContext()
-                .cast(SecurityContext.class)
-                .map(SecurityContext::getAuthentication)
-                .cast(Authentication.class)
-                .map(Authentication::getPrincipal)
-                .cast(Jwt.class)
-                .map(jwt -> jwt.getClaimAsString("sub"))
-                .onErrorReturn("anonymous")
-                .switchIfEmpty(Mono.just("anonymous"));
-    }
+  @Bean
+  @Primary
+  public KeyResolver userKeyResolver() {
+    return exchange ->
+        ReactiveSecurityContextHolder.getContext()
+            .cast(SecurityContext.class)
+            .map(SecurityContext::getAuthentication)
+            .cast(Authentication.class)
+            .map(Authentication::getPrincipal)
+            .cast(Jwt.class)
+            .map(jwt -> jwt.getClaimAsString("sub"))
+            .onErrorReturn("anonymous")
+            .switchIfEmpty(Mono.just("anonymous"));
+  }
 
-    @Bean
-    public KeyResolver ipKeyResolver() {
-        return exchange -> {
-            String xForwardedFor = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
-            String remoteAddress = exchange.getRequest().getRemoteAddress() != null ? 
-                exchange.getRequest().getRemoteAddress().getAddress().getHostAddress() : "unknown";
-            
-            if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-                return Mono.just(xForwardedFor.split(",")[0].trim());
-            }
-            return Mono.just(remoteAddress);
-        };
-    }
+  @Bean
+  public KeyResolver ipKeyResolver() {
+    return exchange -> {
+      String xForwardedFor = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
+      String remoteAddress =
+          exchange.getRequest().getRemoteAddress() != null
+              ? exchange.getRequest().getRemoteAddress().getAddress().getHostAddress()
+              : "unknown";
 
-    // @Bean
-    // public KeyResolver pathKeyResolver() {
-    //     return exchange -> Mono.just(exchange.getRequest().getPath().value());
-    // }
+      if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+        return Mono.just(xForwardedFor.split(",")[0].trim());
+      }
+      return Mono.just(remoteAddress);
+    };
+  }
 
-    // // Rate Limiter Beans
-    // @Bean
-    // @Primary
-    // public RedisRateLimiter publicAuthRateLimiter() {
-    //     return new RedisRateLimiter(2, 5, 1);
-    // }
+  // @Bean
+  // public KeyResolver pathKeyResolver() {
+  //     return exchange -> Mono.just(exchange.getRequest().getPath().value());
+  // }
 
-    // @Bean
-    // public RedisRateLimiter authRateLimiter() {
-    //     return new RedisRateLimiter(10, 20, 1);
-    // }
+  // // Rate Limiter Beans
+  // @Bean
+  // @Primary
+  // public RedisRateLimiter publicAuthRateLimiter() {
+  //     return new RedisRateLimiter(2, 5, 1);
+  // }
 
-    // @Bean
-    // public RedisRateLimiter transactionRateLimiter() {
-    //     return new RedisRateLimiter(15, 30, 1);
-    // }
+  // @Bean
+  // public RedisRateLimiter authRateLimiter() {
+  //     return new RedisRateLimiter(10, 20, 1);
+  // }
 
-    // @Bean
-    // public RedisRateLimiter ocrRateLimiter() {
-    //     return new RedisRateLimiter(2, 5, 1);
-    // }
+  // @Bean
+  // public RedisRateLimiter transactionRateLimiter() {
+  //     return new RedisRateLimiter(15, 30, 1);
+  // }
+
+  // @Bean
+  // public RedisRateLimiter ocrRateLimiter() {
+  //     return new RedisRateLimiter(2, 5, 1);
+  // }
 }

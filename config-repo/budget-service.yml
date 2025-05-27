@@ -1,0 +1,75 @@
+server:
+  port: 8084
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5435}/${DB_NAME:budget_service}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: false
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_URL:http://localhost:8090}/realms/${KEYCLOAK_REALM:coinsight-realm}
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    consumer:
+      group-id: budget-service
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "id.co.bankbsi.coinsight.*"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      retries: 3
+      retry-backoff-ms: 1000
+
+# Keycloak configuration
+keycloak:
+  auth-server-url: ${KEYCLOAK_URL:http://localhost:8090}
+  realm: ${KEYCLOAK_REALM:coinsight-realm}
+  resource: ${KEYCLOAK_CLIENT:budget-service}
+  public-client: false
+  principal-attribute: preferred_username
+  use-resource-role-mappings: true
+  bearer-only: true
+  credentials:
+    secret: ${KEYCLOAK_CLIENT_SECRET:WiDKoqXBrEbkDjc6viFlAIHZFmu2M7vg}
+
+# Service endpoints
+services:
+  auth-service:
+    url: ${AUTH_SERVICE_URL:http://localhost:8081}
+  transaction-service:
+    url: ${TRANSACTION_SERVICE_URL:http://localhost:8082}
+
+# Logging configuration
+logging:
+  level:
+    id.co.bankbsi.coinsight.budget: DEBUG
+    org.springframework.security: INFO
+    org.springframework.kafka: INFO
+    org.springframework.web: INFO
+
+# Budget service specific configuration
+budget:
+  service:
+    default-page-size: 20
+    max-page-size: 100
+    alert-thresholds:
+      - 50  # Info alert at 50%
+      - 80  # Warning alert at 80%
+      - 100 # Exceeded alert at 100%
+    default-period: MONTHLY
+    auto-budget-renewal: true
