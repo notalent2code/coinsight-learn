@@ -3,9 +3,9 @@ WORKDIR /app
 # Copy the entire project
 COPY . /app/
 # Build the specific module
-RUN mvn clean package -pl ocr-service -am -DskipTests
+RUN mvn clean package -pl budget-service -am -DskipTests
 
 FROM amazoncorretto:17-alpine
 WORKDIR /app
-COPY --from=builder /app/ocr-service/target/*.jar app.jar
+COPY --from=builder /app/budget-service/target/*.jar app.jar
 ENTRYPOINT ["java", "-jar", "app.jar"]

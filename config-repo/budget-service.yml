@@ -3,7 +3,7 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5435}/${DB_NAME:budget_service}
+    url: jdbc:postgresql://${DB_HOST:budget-postgres}:${DB_PORT:5432}/${DB_NAME:budget_service}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
@@ -19,9 +19,9 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${KEYCLOAK_URL:http://localhost:8090}/realms/${KEYCLOAK_REALM:coinsight-realm}
+          issuer-uri: ${KEYCLOAK_URL:http://keycloak:8080}/realms/${KEYCLOAK_REALM:coinsight-realm}
   kafka:
-    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    bootstrap-servers: ${KAFKA_SERVERS:kafka:9092}
     consumer:
       group-id: budget-service
       auto-offset-reset: latest
@@ -37,7 +37,7 @@ spring:
 
 # Keycloak configuration
 keycloak:
-  auth-server-url: ${KEYCLOAK_URL:http://localhost:8090}
+  auth-server-url: ${KEYCLOAK_URL:http://keycloak:8080}
   realm: ${KEYCLOAK_REALM:coinsight-realm}
   resource: ${KEYCLOAK_CLIENT:budget-service}
   public-client: false
@@ -50,9 +50,9 @@ keycloak:
 # Service endpoints
 services:
   auth-service:
-    url: ${AUTH_SERVICE_URL:http://localhost:8081}
+    url: ${AUTH_SERVICE_URL:http://auth-service:8081}
   transaction-service:
-    url: ${TRANSACTION_SERVICE_URL:http://localhost:8082}
+    url: ${TRANSACTION_SERVICE_URL:http://transaction-service:8082}
 
 # Logging configuration
 logging:

@@ -3,7 +3,7 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5436}/${DB_NAME:notification_service}
+    url: jdbc:postgresql://${DB_HOST:notification-postgres}:${DB_PORT:5432}/${DB_NAME:notification_service}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
@@ -19,9 +19,9 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${KEYCLOAK_URL:http://localhost:8090}/realms/${KEYCLOAK_REALM:coinsight-realm}
+          issuer-uri: ${KEYCLOAK_URL:http://keycloak:8080}/realms/${KEYCLOAK_REALM:coinsight-realm}
   kafka:
-    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    bootstrap-servers: ${KAFKA_SERVERS:kafka:9092}
     consumer:
       group-id: notification-service
       auto-offset-reset: latest
@@ -33,7 +33,7 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
   mail:
-    host: ${MAIL_HOST:localhost}
+    host: ${MAIL_HOST:mailhog}
     port: ${MAIL_PORT:1025}
     username: ${MAIL_USERNAME:}
     password: ${MAIL_PASSWORD:}
@@ -50,7 +50,7 @@ spring:
 
 # Keycloak configuration
 keycloak:
-  auth-server-url: ${KEYCLOAK_URL:http://localhost:8090}
+  auth-server-url: ${KEYCLOAK_URL:http://keycloak:8080}
   realm: ${KEYCLOAK_REALM:coinsight-realm}
   resource: ${KEYCLOAK_CLIENT:notification-service}
   public-client: false
@@ -63,9 +63,9 @@ keycloak:
 # Service endpoints
 services:
   auth-service:
-    url: ${AUTH_SERVICE_URL:http://localhost:8081}
+    url: ${AUTH_SERVICE_URL:http://auth-service:8081}
   budget-service:
-    url: ${BUDGET_SERVICE_URL:http://localhost:8084}
+    url: ${BUDGET_SERVICE_URL:http://budget-service:8084}
 
 # Logging configuration
 logging:
