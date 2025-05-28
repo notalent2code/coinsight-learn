@@ -85,10 +85,10 @@ spring:
             - Path=/api/ocr/**
           filters:
             - TokenRelay
-            - name: CircuitBreaker
-              args:
-                name: ocrServiceCircuitBreaker
-                fallbackUri: forward:/fallback/ocr
+            # - name: CircuitBreaker
+            #   args:
+            #     name: ocrServiceCircuitBreaker
+            #     fallbackUri: forward:/fallback/ocr
             - name: RequestRateLimiter
               args:
                 redis-rate-limiter.replenishRate: 2

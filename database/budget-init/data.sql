@@ -16,11 +16,27 @@ CREATE TABLE IF NOT EXISTS budgets (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create idempotency protection table
+CREATE TABLE processed_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id VARCHAR(255) UNIQUE NOT NULL,
+    event_type VARCHAR(50) NOT NULL,
+    processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_processed_events_event_id ON processed_events(event_id);
+CREATE INDEX idx_processed_events_processed_at ON processed_events(processed_at);
+
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_budgets_user_id ON budgets(user_id);
 CREATE INDEX IF NOT EXISTS idx_budgets_category_id ON budgets(category_id);
 CREATE INDEX IF NOT EXISTS idx_budgets_active ON budgets(user_id, is_active);
 CREATE INDEX IF NOT EXISTS idx_budgets_user_category ON budgets(user_id, category_id);
+
+-- Add unique constraint for active budgets
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_user_category_active 
+ON budgets (user_id, category_id) 
+WHERE is_active = true;
 
 -- Create function to automatically update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()

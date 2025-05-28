@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.*;
 import org.springframework.kafka.listener.ContainerProperties;
+import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 
@@ -43,28 +44,62 @@ public class KafkaConfig {
   }
 
   @Bean
-  public ConsumerFactory<String, Object> consumerFactory() {
+  public ConsumerFactory<String, Object> transactionCreatedConsumerFactory() {
     Map<String, Object> props = new HashMap<>();
     props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
     props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
     props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
     props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
-    props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
     props.put(JsonDeserializer.TRUSTED_PACKAGES, "id.co.bankbsi.coinsight.*");
     props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
-    props.put(
-        JsonDeserializer.VALUE_DEFAULT_TYPE,
-        "id.co.bankbsi.coinsight.budget.event.TransactionCreatedEvent");
-
+    props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "id.co.bankbsi.coinsight.budget.event.TransactionCreatedEvent");
+    
+    // Fix offset management
+    props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"); // Change from latest
+    props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false); // Manual commit for better control
+    props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 1000);
+    
     return new DefaultKafkaConsumerFactory<>(props);
   }
 
   @Bean
-  public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory() {
+  public ConsumerFactory<String, Object> transactionDeletedConsumerFactory() {
+    Map<String, Object> props = new HashMap<>();
+    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+    props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+    props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+    props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
+    props.put(JsonDeserializer.TRUSTED_PACKAGES, "id.co.bankbsi.coinsight.*");
+    props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
+    props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "id.co.bankbsi.coinsight.budget.event.TransactionDeletedEvent");
+    
+    // Fix offset management
+    props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+    props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 1000);
+    
+    return new DefaultKafkaConsumerFactory<>(props);
+  }
+
+  @Bean
+  public ConcurrentKafkaListenerContainerFactory<String, Object> transactionCreatedListenerContainerFactory() {
     ConcurrentKafkaListenerContainerFactory<String, Object> factory =
         new ConcurrentKafkaListenerContainerFactory<>();
-    factory.setConsumerFactory(consumerFactory());
+    factory.setConsumerFactory(transactionCreatedConsumerFactory());
     factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
+    factory.setCommonErrorHandler(new org.springframework.kafka.listener.DefaultErrorHandler());
+    
+    return factory;
+  }
+
+  @Bean
+  public ConcurrentKafkaListenerContainerFactory<String, Object> transactionDeletedListenerContainerFactory() {
+    ConcurrentKafkaListenerContainerFactory<String, Object> factory =
+        new ConcurrentKafkaListenerContainerFactory<>();
+    factory.setConsumerFactory(transactionDeletedConsumerFactory());
+    factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
+    factory.setCommonErrorHandler(new org.springframework.kafka.listener.DefaultErrorHandler());
+    
     return factory;
   }
 }

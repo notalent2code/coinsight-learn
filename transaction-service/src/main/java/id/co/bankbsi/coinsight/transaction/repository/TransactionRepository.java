@@ -3,15 +3,20 @@ package id.co.bankbsi.coinsight.transaction.repository;
 import id.co.bankbsi.coinsight.transaction.model.Transaction;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, UUID> {
+  @Query("SELECT t FROM Transaction t WHERE t.id = :id")
+  Optional<Transaction> findByIdIncludingDeleted(@Param("id") UUID id);
+
   Page<Transaction> findByUserId(UUID userId, Pageable pageable);
 
   Page<Transaction> findByUserIdAndTransactionDateBetween(

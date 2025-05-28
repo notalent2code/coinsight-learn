@@ -2,18 +2,17 @@ package id.co.bankbsi.coinsight.budget.dto;
 
 import id.co.bankbsi.coinsight.budget.model.BudgetPeriod;
 import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import lombok.Data;
 
 @Data
 public class BudgetUpdateRequest {
-  @NotBlank(message = "Budget name is required")
+  @Size(min = 1, max = 100, message = "Budget name must be between 1 and 100 characters")
   private String name;
 
-  @NotNull(message = "Amount is required") @DecimalMin(value = "0.01", message = "Amount must be greater than 0")
+  @DecimalMin(value = "10000.00", message = "Amount must be at least 10,000.00")
   private BigDecimal amount;
 
-  @NotNull(message = "Period is required") private BudgetPeriod period;
+  private BudgetPeriod period;
 }

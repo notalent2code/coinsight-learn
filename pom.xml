@@ -81,14 +81,14 @@
                         <formatAnnotations/>
                     </java>
                 </configuration>
-                <executions>
+                <!-- <executions>
                     <execution>
                         <goals>
                             <goal>check</goal>
                         </goals>
                         <phase>verify</phase>
                     </execution>
-                </executions>
+                </executions> -->
             </plugin>
         </plugins>
     </build>

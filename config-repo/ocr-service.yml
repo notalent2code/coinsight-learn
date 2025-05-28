@@ -1,5 +1,15 @@
 server:
   port: 8083
+  # Add timeout configurations
+  servlet:
+    session:
+      timeout: 30s
+  tomcat:
+    connection-timeout: 30000
+    max-connections: 8192
+    threads:
+      max: 200
+      min-spare: 10
 
 spring:
   security:
@@ -7,16 +17,42 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: ${KEYCLOAK_URL:http://localhost:8090}/realms/${KEYCLOAK_REALM:coinsight-realm}
+  # HTTP timeout configurations
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  mvc:
+    async:
+      request-timeout: 30000
 
 # Azure Form Recognizer configuration
 azure:
   form-recognizer:
     endpoint: ${AZURE_FORM_RECOGNIZER_ENDPOINT:https://coinsight-ocr.cognitiveservices.azure.com/}
     api-key: ${AZURE_FORM_RECOGNIZER_API_KEY:2G2FhKKSMQIGInRgpEYKYZIrsHeJKPLPrLS9e6vnSJgu4LJwFM0tJQQJ99BEACqBBLyXJ3w3AAAAACOG0aZg}
+    # Add timeout configurations for Azure client
+    timeout:
+      connection: 10000  # 10 seconds
+      read: 30000       # 30 seconds  
+      response: 30000   # 30 seconds
   openai:
     endpoint: ${AZURE_OPENAI_ENDPOINT:https://rihla-maz4futt-eastus2.cognitiveservices.azure.com/}
     api-key: ${AZURE_OPENAI_API_KEY:1IqZw7IsgY8qzgwH3XAxcEGp7qBCQThKmmo8VJVIL0Ics6jwZbScJQQJ99BEACHYHv6XJ3w3AAAAACOGxchg}
     deployment-id: ${AZURE_OPENAI_DEPLOYMENT_ID:gpt-4.1}
+    # Add timeout configurations for OpenAI client
+    timeout:
+      connection: 10000  # 10 seconds
+      read: 60000       # 60 seconds for AI processing
+      response: 60000   # 60 seconds
+
+# HTTP client timeout configurations
+http:
+  client:
+    timeout:
+      connection: 10000    # 10 seconds
+      read: 30000         # 30 seconds
+      write: 30000        # 30 seconds
 
 # Keycloak configuration
 keycloak:
@@ -43,9 +79,18 @@ resilience4j:
     instances:
       processReceipt:
         registerHealthIndicator: true
-        slidingWindowSize: 10
+        slidingWindowSize: 5
         failureRateThreshold: 50
         waitDurationInOpenState: 10000
-        permittedNumberOfCallsInHalfOpenState: 3
+        permittedNumberOfCallsInHalfOpenState: 2
         automaticTransitionFromOpenToHalfOpenEnabled: true
+        # Add timeout to prevent hanging calls
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: 30000  # 30 seconds
+        minimumNumberOfCalls: 3
+  timelimiter:
+    instances:
+      processReceipt:
+        timeoutDuration: 30s
+        cancelRunningFuture: true
 

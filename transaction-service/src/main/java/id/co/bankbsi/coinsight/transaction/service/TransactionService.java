@@ -279,7 +279,7 @@ public class TransactionService {
 
     Transaction transaction =
         transactionRepository
-            .findById(id)
+            .findByIdIncludingDeleted(id)
             .orElseThrow(
                 () -> new TransactionNotFoundException("Transaction not found with id: " + id));
 
