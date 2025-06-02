@@ -13,57 +13,29 @@ spring:
     config:
       server:
         native:
-          search-locations: ${CONFIG_REPO_URI:file:///home/miosha/code/bsi/ojt/coinsight/config-repo}
+          search-locations: ${CONFIG_REPO_URI:file:///tmp/config-repo}
     vault:
-      uri: ${VAULT_URI:http://localhost:8200}
-      authentication: token
-      token: ${VAULT_TOKEN:myroot}
-      kv:
-        enabled: true
-        backend: secret
-        default-context: application
+      enabled: false
+      # host: vault  # Force Docker container name
+      # port: 8200
+      # scheme: http
+      # uri: ${VAULT_URI:http://vault:8200}
+      # authentication: token
+      # token: ${VAULT_TOKEN:myroot}
+      # kv:
+      #   enabled: true
+      #   backend: secret
+      #   default-context: application
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
   prometheus:
     metrics:
       export:
         enabled: true
-
-# # application.yml
-# server:
-#   port: 8888
-
-# spring:
-#   application:
-#     name: config-server
-#   main: 
-#     allow-bean-definition-overriding: true
-#   cloud:
-#     config:
-#       server:
-#         git:
-#           uri: ${CONFIG_REPO_URI:file:///tmp/config-repo}
-#           default-label: main
-#           search-paths: '{application}'
-#     vault:
-#       uri: ${VAULT_URI:http://localhost:8200}
-#       authentication: token
-#       token: ${VAULT_TOKEN:myroot}
-#       kv:
-#         enabled: true
-#         backend: secret
-#         default-context: application
-
-# management:
-#   endpoints:
-#     web:
-#       exposure:
-#         include: health,info,metrics,prometheus
-#   prometheus:
-#     metrics:
-#       export:
-#         enabled: true

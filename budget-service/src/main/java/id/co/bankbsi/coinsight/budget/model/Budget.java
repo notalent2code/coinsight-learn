@@ -6,7 +6,7 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
+// import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -64,6 +64,6 @@ public class Budget {
   @Column(name = "updated_at")
   private LocalDateTime updatedAt;
 
-  @OneToMany(mappedBy = "budget", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-  private List<BudgetAlert> alerts;
+  // @OneToMany(mappedBy = "budget", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+  // private List<BudgetAlert> alerts;
 }

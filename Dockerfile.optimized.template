@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Optimized Multi-stage Docker build for Maven + Amazon Corretto
-# Usage: Replace budget-service and 8084 with actual values
+# Usage: Replace {{SERVICE_NAME}} and {{PORT}} with actual values
 
 FROM maven:3.9-amazoncorretto-17 AS builder
 
@@ -9,22 +9,22 @@ WORKDIR /app
 # Copy only POM files first for optimal dependency caching
 COPY pom.xml .
 COPY common/pom.xml ./common/
-COPY budget-service/pom.xml ./budget-service/
+COPY {{SERVICE_NAME}}/pom.xml ./{{SERVICE_NAME}}/
 
 # Download dependencies with BuildKit cache mount
 # This layer is cached unless POM files change
 RUN --mount=type=cache,target=/root/.m2 \
     --mount=type=cache,target=/tmp/maven-build \
-    mvn dependency:go-offline -pl budget-service -am -B
+    mvn dependency:go-offline -pl {{SERVICE_NAME}} -am -B
 
 # Copy source code after dependencies are cached
 COPY common/src ./common/src
-COPY budget-service/src ./budget-service/src
+COPY {{SERVICE_NAME}}/src ./{{SERVICE_NAME}}/src
 
 # Build application using cached dependencies
 RUN --mount=type=cache,target=/root/.m2 \
     --mount=type=cache,target=/tmp/maven-build \
-    mvn clean package -pl budget-service -am -DskipTests -B \
+    mvn clean package -pl {{SERVICE_NAME}} -am -DskipTests -B \
     -Dmaven.repo.local=/root/.m2
 
 # Runtime stage - minimal, secure image
@@ -41,17 +41,17 @@ RUN addgroup -g 1001 -S appgroup && \
     adduser -u 1001 -S appuser -G appgroup
 
 # Copy JAR file from builder stage with proper ownership
-COPY --from=builder --chown=appuser:appgroup /app/budget-service/target/budget-service-*.jar app.jar
+COPY --from=builder --chown=appuser:appgroup /app/{{SERVICE_NAME}}/target/{{SERVICE_NAME}}-*.jar app.jar
 
 # Switch to non-root user
 USER appuser
 
 # Expose service port
-EXPOSE 8084
+EXPOSE {{PORT}}
 
 # Health check for Spring Boot Actuator
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:8084/actuator/health || exit 1
+  CMD curl -f http://localhost:{{PORT}}/actuator/health || exit 1
 
 # Optimized JVM settings for containerized Spring Boot applications
 ENTRYPOINT ["java", \

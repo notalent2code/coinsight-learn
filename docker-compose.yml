@@ -1,4 +1,17 @@
-version: '3.8'
+# Optimized Docker Compose for Coinsight Microservices
+# Uses BuildKit for faster builds and better caching
+
+# version: '3.8'
+
+# Enable BuildKit features
+x-buildkit: &buildkit-config
+  target: ""
+  cache_from:
+    - maven:3.9-amazoncorretto-17
+  cache_to:
+    - type=local,dest=/tmp/.buildx-cache
+  platforms:
+    - linux/amd64
 
 services:
   # Infrastructure
@@ -18,7 +31,7 @@ services:
       - coinsight-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 30s
+      interval: 10s
       timeout: 10s
       retries: 5
 
@@ -39,7 +52,7 @@ services:
       - coinsight-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 30s
+      interval: 10s
       timeout: 10s
       retries: 5
 
@@ -60,7 +73,7 @@ services:
       - coinsight-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 30s
+      interval: 10s
       timeout: 10s
       retries: 5
 
@@ -81,7 +94,7 @@ services:
       - coinsight-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 30s
+      interval: 10s
       timeout: 10s
       retries: 5
 
@@ -102,7 +115,7 @@ services:
       - coinsight-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 30s
+      interval: 10s
       timeout: 10s
       retries: 5
 
@@ -120,9 +133,16 @@ services:
       KC_DB_PASSWORD: postgres
       KC_HEALTH_ENABLED: 'true'
       KC_METRICS_ENABLED: 'true'
-      KC_HOSTNAME_URL: http://localhost:8090
-      KC_HOSTNAME_ADMIN_URL: http://localhost:8090
-      KC_HTTP_ENABLED: 'true'
+      # # Update these settings to use consistent hostname
+      # KC_HOSTNAME: keycloak
+      # KC_HOSTNAME_PORT: 8080
+      # KC_HOSTNAME_URL: http://keycloak:8080
+      # KC_HOSTNAME_ADMIN_URL: http://keycloak:8080
+      # KC_HTTP_ENABLED: 'true'
+      # # Make sure frontend URLs are also consistent
+      # KC_HOSTNAME_STRICT: 'false'
+      # KC_HOSTNAME_STRICT_HTTPS: 'false'
+      # KC_PROXY: edge
     command: ['start-dev']
     depends_on:
       postgres:
@@ -130,29 +150,28 @@ services:
     networks:
       - coinsight-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/ready || exit 1"]
-      interval: 30s
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 10s
       timeout: 10s
       retries: 10
 
-  vault:
-    image: hashicorp/vault:1.19
-    container_name: vault
-    ports:
-      - '8200:8200'
-    environment:
-      VAULT_DEV_ROOT_TOKEN_ID: myroot
-      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
-      VAULT_ADDR: http://localhost:8200
-    cap_add:
-      - IPC_LOCK
-    networks:
-      - coinsight-network
-    healthcheck:
-      test: ["CMD-SHELL", "VAULT_ADDR=http://localhost:8200 vault status || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+  # vault:
+  #   image: hashicorp/vault:1.19
+  #   container_name: vault
+  #   ports:
+  #     - '8200:8200'
+  #   environment:
+  #     VAULT_DEV_ROOT_TOKEN_ID: myroot
+  #     VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+  #   cap_add:
+  #     - IPC_LOCK
+  #   networks:
+  #     - coinsight-network
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "vault status || exit 1"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.9.1
@@ -166,7 +185,7 @@ services:
       - coinsight-network
     healthcheck:
       test: ["CMD-SHELL", "echo srvr | nc localhost 2181 | grep -q Mode"]
-      interval: 30s
+      interval: 10s
       timeout: 10s
       retries: 5
 
@@ -189,7 +208,7 @@ services:
       - coinsight-network
     healthcheck:
       test: ["CMD-SHELL", "kafka-topics --bootstrap-server kafka:29092 --list"]
-      interval: 30s
+      interval: 10s
       timeout: 10s
       retries: 5
 
@@ -205,7 +224,7 @@ services:
       - coinsight-network
     healthcheck:
       test: ["CMD-SHELL", "redis-cli ping"]
-      interval: 30s
+      interval: 10s
       timeout: 10s
       retries: 5
 
@@ -261,18 +280,18 @@ services:
       - '8888:8888'
     environment:
       - CONFIG_REPO_URI=file:///tmp/config-repo
-      - VAULT_URI=http://vault:8200
-      - VAULT_TOKEN=myroot
+      # - VAULT_URI=http://vault:8200
+      # - VAULT_TOKEN=myroot
     volumes:
       - ./config-repo:/tmp/config-repo
-    depends_on:
-      vault:
-        condition: service_healthy
+    # depends_on:
+    #   vault:
+    #     condition: service_healthy
     networks:
       - coinsight-network
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8888/actuator/health || exit 1"]
-      interval: 30s
+      interval: 10s
       timeout: 10s
       retries: 10
 
@@ -313,8 +332,8 @@ services:
       - DB_HOST=transaction-db
       - DB_PORT=5432
       - DB_NAME=transaction_service
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
       - KAFKA_SERVERS=kafka:29092
     depends_on:
       config-server:
@@ -403,7 +422,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      - mailhog
+      mailhog:
+        condition: service_started
     networks:
       - coinsight-network
     restart: on-failure
@@ -432,11 +452,16 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      - auth-service
-      - transaction-service
-      - ocr-service
-      - budget-service
-      - notification-service
+      auth-service:
+        condition: service_started
+      transaction-service:
+        condition: service_started
+      ocr-service:
+        condition: service_started
+      budget-service:
+        condition: service_started
+      notification-service:
+        condition: service_started
     networks:
       - coinsight-network
     restart: on-failure

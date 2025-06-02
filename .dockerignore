@@ -1,0 +1,53 @@
+# Build artifacts
+**/target/
+**/build/
+*.jar
+*.war
+*.ear
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+HELP.md
+ARCHITECTURE_ANALYSIS_REPORT.md
+GLOBAL_EXCEPTION_HANDLER_GUIDE.md
+KUBERNETES_SERVICE_DISCOVERY_GUIDE.md
+
+# Scripts and configs that aren't needed in container
+*.sh
+docker-compose*.yml
+k6-tests/
+k8s/
+kubernetes/
+prometheus/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Node modules (if any)
+node_modules/
+
+# Maven wrapper (we'll use container's Maven)
+.mvn/
+mvnw
+mvnw.cmd

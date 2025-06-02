@@ -1,0 +1,52 @@
+# syntax=docker/dockerfile:1
+FROM maven:3.9-amazoncorretto-17 AS dependencies
+
+WORKDIR /app
+
+# Copy parent pom and common module pom for dependency resolution
+COPY pom.xml .
+COPY common/pom.xml ./common/
+
+# Copy service-specific pom
+COPY auth-service/pom.xml ./auth-service/
+
+# Download dependencies with cache mount (this layer will be cached)
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn dependency:go-offline -pl auth-service -am
+
+FROM maven:3.9-amazoncorretto-17 AS builder
+
+WORKDIR /app
+
+# Copy cached dependencies from previous stage
+COPY --from=dependencies /root/.m2 /root/.m2
+
+# Copy all necessary files for building
+COPY pom.xml .
+COPY common/ ./common/
+COPY auth-service/ ./auth-service/
+
+# Build with cache mount (dependencies already cached)
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn clean package -pl auth-service -am -DskipTests
+
+# Runtime stage
+FROM amazoncorretto:17-alpine
+
+WORKDIR /app
+
+# Add non-root user for security
+RUN addgroup -g 1001 appgroup && \
+    adduser -u 1001 -G appgroup -s /bin/sh -D appuser
+
+# Copy jar file
+COPY --from=builder /app/auth-service/target/*.jar app.jar
+
+# Change ownership
+RUN chown appuser:appgroup app.jar
+
+USER appuser
+
+EXPOSE 8081
+
+ENTRYPOINT ["java", "-jar", "app.jar"]
