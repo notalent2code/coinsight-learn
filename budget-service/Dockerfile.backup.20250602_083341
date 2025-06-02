@@ -61,7 +61,6 @@ ENTRYPOINT ["java", \
     "-XX:+UseStringDeduplication", \
     "-XX:+UseG1GC", \
     "-XX:G1HeapRegionSize=16m", \
-    "-XX:+UseStringCache", \
     "-Djava.security.egd=file:/dev/./urandom", \
     "-Dspring.backgroundpreinitializer.ignore=true", \
     "-jar", "app.jar"]

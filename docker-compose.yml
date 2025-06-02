@@ -332,8 +332,8 @@ services:
       - DB_HOST=transaction-db
       - DB_PORT=5432
       - DB_NAME=transaction_service
-      - SPRING_DATA_REDIS_HOST=redis
-      - SPRING_DATA_REDIS_PORT=6379
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - KAFKA_SERVERS=kafka:29092
     depends_on:
       config-server:

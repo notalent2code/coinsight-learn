@@ -6,10 +6,21 @@ FROM maven:3.9-amazoncorretto-17 AS builder
 
 WORKDIR /app
 
-# Copy only POM files first for optimal dependency caching
+# Copy the parent POM first
 COPY pom.xml .
+
+# Create empty directories for all modules to satisfy Maven structure
+RUN mkdir -p common gateway-service auth-service transaction-service ocr-service budget-service notification-service config-server
+
+# Copy all module POM files
 COPY common/pom.xml ./common/
+COPY gateway-service/pom.xml ./gateway-service/
 COPY auth-service/pom.xml ./auth-service/
+COPY transaction-service/pom.xml ./transaction-service/
+COPY ocr-service/pom.xml ./ocr-service/
+COPY budget-service/pom.xml ./budget-service/
+COPY notification-service/pom.xml ./notification-service/
+COPY config-server/pom.xml ./config-server/
 
 # Download dependencies with BuildKit cache mount
 # This layer is cached unless POM files change
@@ -17,15 +28,13 @@ RUN --mount=type=cache,target=/root/.m2 \
     --mount=type=cache,target=/tmp/maven-build \
     mvn dependency:go-offline -pl auth-service -am -B
 
-# Copy source code after dependencies are cached
+# Copy only the source code we need for auth-service
 COPY common/src ./common/src
 COPY auth-service/src ./auth-service/src
 
-# Build application using cached dependencies
+# Build auth-service
 RUN --mount=type=cache,target=/root/.m2 \
-    --mount=type=cache,target=/tmp/maven-build \
-    mvn clean package -pl auth-service -am -DskipTests -B \
-    -Dmaven.repo.local=/root/.m2
+    mvn clean package -pl auth-service -am -DskipTests -B
 
 # Runtime stage - minimal, secure image
 FROM amazoncorretto:17-alpine3.19
@@ -61,7 +70,6 @@ ENTRYPOINT ["java", \
     "-XX:+UseStringDeduplication", \
     "-XX:+UseG1GC", \
     "-XX:G1HeapRegionSize=16m", \
-    "-XX:+UseStringCache", \
     "-Djava.security.egd=file:/dev/./urandom", \
     "-Dspring.backgroundpreinitializer.ignore=true", \
     "-jar", "app.jar"]

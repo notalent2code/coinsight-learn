@@ -20,10 +20,10 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: ${KEYCLOAK_URL:http://keycloak:8080}/realms/${KEYCLOAK_REALM:coinsight-realm}
-    # Add Redis configuration
+  # Add Redis configuration
   data:
     redis:
-      host: ${REDIS_HOST:redis}
+      host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
   kafka:
     bootstrap-servers: ${KAFKA_SERVERS:kafka:9092}

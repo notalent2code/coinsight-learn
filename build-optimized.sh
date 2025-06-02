@@ -84,13 +84,13 @@ echo ""
 echo -e "${GREEN}🎉 All services built successfully in ${total_duration}s!${NC}"
 echo ""
 
-# Show image sizes
-echo -e "${YELLOW}📊 Image sizes:${NC}"
-for service in "${SERVICES[@]}"; do
-    image_name="coinsight-${service}"
-    size=$(docker images --format "{{.Size}}" "$image_name" 2>/dev/null | head -1 || echo "N/A")
-    echo -e "   • $image_name: $size"
-done
+# # Show image sizes
+# echo -e "${YELLOW}📊 Image sizes:${NC}"
+# for service in "${SERVICES[@]}"; do
+#     image_name="coinsight-${service}"
+#     size=$(docker images --format "{{.Size}}" "$image_name" 2>/dev/null | head -1 || echo "N/A")
+#     echo -e "   • $image_name: $size"
+# done
 
 echo ""
 echo -e "${BLUE}🚀 Ready to start services with: docker-compose up -d${NC}"
