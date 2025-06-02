@@ -18,4 +18,5 @@ keycloak:
   public-client: false
   principal-attribute: preferred_username
   credentials:
-    secret: ${KEYCLOAK_CLIENT_SECRET:OgRK7as6bjDxNKT5qpAbAtaMKsg7c1bh}
+    secret: ${keycloak.client.secret}
+    # secret: ${KEYCLOAK_CLIENT_SECRET:OgRK7as6bjDxNKT5qpAbAtaMKsg7c1bh}

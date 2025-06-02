@@ -15,27 +15,14 @@ spring:
         native:
           search-locations: ${CONFIG_REPO_URI:file:///tmp/config-repo}
     vault:
-      enabled: false
-      # host: vault  # Force Docker container name
-      # port: 8200
-      # scheme: http
-      # uri: ${VAULT_URI:http://vault:8200}
-      # authentication: token
-      # token: ${VAULT_TOKEN:myroot}
-      # kv:
-      #   enabled: true
-      #   backend: secret
-      #   default-context: application
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,prometheus
-  endpoint:
-    health:
-      show-details: always
-  prometheus:
-    metrics:
-      export:
+      enabled: true
+      host: vault
+      port: 8200
+      scheme: http
+      uri: ${VAULT_URI:http://vault:8200}
+      authentication: token
+      token: ${VAULT_TOKEN:myroot}
+      kv:
         enabled: true
+        backend: secret
+        default-context: application

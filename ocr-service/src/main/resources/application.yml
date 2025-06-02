@@ -8,7 +8,7 @@ spring:
     import: configserver:${CONFIG_SERVER_URI:http://localhost:8888}
   cloud:
     vault:
-      enabled: false
+      enabled: true
     config:
       fail-fast: true
   security:

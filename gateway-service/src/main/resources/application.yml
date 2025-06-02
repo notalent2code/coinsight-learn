@@ -8,7 +8,7 @@ spring:
     import: configserver:${CONFIG_SERVER_URI:http://localhost:8888}
   cloud:
     vault:
-      enabled: false
+      enabled: true
   security:
     oauth2:
       client:
@@ -45,16 +45,6 @@ resilience4j:
         failureRateThreshold: 50
         waitDurationInOpenState: 30000
         permittedNumberOfCallsInHalfOpenState: 5
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,prometheus
-  prometheus:
-    metrics:
-      export:
-        enabled: true
 
 services:
   auth-service:

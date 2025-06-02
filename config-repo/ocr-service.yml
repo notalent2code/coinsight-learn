@@ -72,7 +72,8 @@ keycloak:
   use-resource-role-mappings: true
   bearer-only: true
   credentials:
-    secret: ${KEYCLOAK_CLIENT_SECRET:epNXpJWhzUqwH87VxspGLXh2hgC2mBkn}
+    secret: ${keycloak.client.secret}
+    # secret: ${KEYCLOAK_CLIENT_SECRET:epNXpJWhzUqwH87VxspGLXh2hgC2mBkn}
 
 # Logging configuration
 logging:

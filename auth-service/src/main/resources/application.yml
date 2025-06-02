@@ -8,7 +8,7 @@ spring:
     import: configserver:${CONFIG_SERVER_URI:http://localhost:8888}
   cloud:
     vault:
-      enabled: false
+      enabled: true
     config:
       fail-fast: true
   # Keep your other configurations as fallbacks
@@ -35,20 +35,11 @@ keycloak:
   realm: ${KEYCLOAK_REALM:coinsight-realm}
   resource: auth-service  # This should match the client ID in Keycloak
   credentials:
-    secret: ${KEYCLOAK_CLIENT_SECRET:OgRK7as6bjDxNKT5qpAbAtaMKsg7c1bh}  # Use the secret from Keycloak
+    secret: ${keycloak.client.secret}  # This will be resolved from Vault
+    # secret: ${KEYCLOAK_CLIENT_SECRET:OgRK7as6bjDxNKT5qpAbAtaMKsg7c1bh}  # Use the secret from Keycloak
   public-client: false
   use-resource-role-mappings: true
   bearer-only: false
   admin:
     username: ${KEYCLOAK_ADMIN_USERNAME:admin}
     password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,prometheus
-  prometheus:
-    metrics:
-      export:
-        enabled: true

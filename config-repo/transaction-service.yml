@@ -44,7 +44,8 @@ keycloak:
   use-resource-role-mappings: true
   bearer-only: true
   credentials:
-    secret: ${KEYCLOAK_CLIENT_SECRET:61fkBYf9jBS4tT3hcSYtoKA75pr0BcKn}
+    secret: ${keycloak.client.secret}
+    # secret: ${KEYCLOAK_CLIENT_SECRET:61fkBYf9jBS4tT3hcSYtoKA75pr0BcKn}
 
 # # Eureka client configuration
 # eureka:

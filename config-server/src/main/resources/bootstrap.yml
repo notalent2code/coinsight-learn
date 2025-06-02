@@ -1,14 +1,20 @@
-spring:
-  application:
-    name: config-server
-  cloud:
-    vault:
-      host: vault
-      port: 8200
-      scheme: http
-      authentication: token
-      token: ${VAULT_TOKEN:myroot}
-      connection-timeout: 5000
-      read-timeout: 15000
-      config:
-        order: -10
+# spring:
+#   application:
+#     name: config-server
+#   cloud:
+#     vault:
+#       enabled: true
+#       host: vault
+#       port: 8200
+#       scheme: http
+#       uri: ${VAULT_URI:http://vault:8200}
+#       authentication: token
+#       token: ${VAULT_TOKEN:myroot}
+#       connection-timeout: 5000
+#       read-timeout: 15000
+#       config:
+#         order: -10
+#       kv:
+#         enabled: true
+#         backend: secret
+#         default-context: application

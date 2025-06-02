@@ -10,11 +10,11 @@ spring:
           default-label: main
           search-paths: '{application}'
     vault:
-      enabled: false
-      # uri: ${VAULT_URI:http://vault:8200}
-      # authentication: token
-      # token: ${VAULT_TOKEN:myroot}
-      # kv:
-      #   enabled: true
-      #   backend: secret
-      #   default-context: application
+      enabled: true
+      uri: ${VAULT_URI:http://vault:8200}
+      authentication: token
+      token: ${VAULT_TOKEN:myroot}
+      kv:
+        enabled: true
+        backend: secret
+        default-context: application

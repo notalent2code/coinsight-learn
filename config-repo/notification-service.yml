@@ -58,7 +58,8 @@ keycloak:
   use-resource-role-mappings: true
   bearer-only: true
   credentials:
-    secret: ${KEYCLOAK_CLIENT_SECRET:HmPlEAIi4rJA5VZAnCX822wEjdXaXc8o}
+    secret: ${keycloak.client.secret}
+    # secret: ${KEYCLOAK_CLIENT_SECRET:HmPlEAIi4rJA5VZAnCX822wEjdXaXc8o}
 
 # Service endpoints
 services:
