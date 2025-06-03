@@ -1,0 +1,5 @@
+{{- if .Values.microservices.transactionService.enabled }}
+{{- include "microservice.deployment" (dict "serviceName" "transaction-service" "config" .Values.microservices.transactionService "root" . "Release" .Release "Chart" .Chart) }}
+{{- printf "\n" }}
+{{- include "microservice.service" (dict "serviceName" "transaction-service" "config" .Values.microservices.transactionService "root" . "Release" .Release "Chart" .Chart) }}
+{{- end }}

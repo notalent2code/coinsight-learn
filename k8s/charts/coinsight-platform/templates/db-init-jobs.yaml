@@ -1,0 +1,273 @@
+# Database Initialization Jobs
+# These jobs run the SQL scripts to create database schemas and initial data
+
+# Auth Service Database Initialization
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-db-init-scripts
+  namespace: {{ .Values.global.namespace | default "coinsight" }}
+data:
+  01-schema.sql: |
+{{ .Files.Get "database/auth-init/01-schema.sql" | indent 4 }}
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: auth-db-init
+  namespace: {{ .Values.global.namespace | default "coinsight" }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  ttlSecondsAfterFinished: 120
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: auth-db-init
+        image: postgres:17-alpine
+        env:
+        - name: PGHOST
+          value: "{{ .Values.microservices.authService.database.host }}"
+        - name: PGPORT
+          value: "5432"
+        - name: PGUSER
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: postgres-username
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: postgres-password
+        - name: PGDATABASE
+          value: "auth_service"
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          echo "Waiting for database to be ready..."
+          until pg_isready; do
+            echo "Database not ready, waiting..."
+            sleep 2
+          done
+          echo "Database ready! Running initialization scripts..."
+          psql -f /scripts/01-schema.sql
+          echo "Auth database initialization completed!"
+        volumeMounts:
+        - name: auth-init-scripts
+          mountPath: /scripts
+      volumes:
+      - name: auth-init-scripts
+        configMap:
+          name: auth-db-init-scripts
+
+# Transaction Service Database Initialization
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: transaction-db-init-scripts
+  namespace: {{ .Values.global.namespace | default "coinsight" }}
+data:
+  01-schema.sql: |
+{{ .Files.Get "database/transaction-init/01-schema.sql" | indent 4 }}
+  02-data.sql: |
+{{ .Files.Get "database/transaction-init/02-data.sql" | indent 4 }}
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: transaction-db-init
+  namespace: {{ .Values.global.namespace | default "coinsight" }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  ttlSecondsAfterFinished: 120
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: transaction-db-init
+        image: postgres:17-alpine
+        env:
+        - name: PGHOST
+          value: "{{ .Values.microservices.transactionService.database.host }}"
+        - name: PGPORT
+          value: "5432"
+        - name: PGUSER
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: postgres-username
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: postgres-password
+        - name: PGDATABASE
+          value: "transaction_service"
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          echo "Waiting for database to be ready..."
+          until pg_isready; do
+            echo "Database not ready, waiting..."
+            sleep 2
+          done
+          echo "Database ready! Running initialization scripts..."
+          psql -f /scripts/01-schema.sql
+          psql -f /scripts/02-data.sql
+          echo "Transaction database initialization completed!"
+        volumeMounts:
+        - name: transaction-init-scripts
+          mountPath: /scripts
+      volumes:
+      - name: transaction-init-scripts
+        configMap:
+          name: transaction-db-init-scripts
+
+# Budget Service Database Initialization
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: budget-db-init-scripts
+  namespace: {{ .Values.global.namespace | default "coinsight" }}
+data:
+  01-schema.sql: |
+{{ .Files.Get "database/budget-init/01-schema.sql" | indent 4 }}
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: budget-db-init
+  namespace: {{ .Values.global.namespace | default "coinsight" }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  ttlSecondsAfterFinished: 120
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: budget-db-init
+        image: postgres:17-alpine
+        env:
+        - name: PGHOST
+          value: "{{ .Values.microservices.budgetService.database.host }}"
+        - name: PGPORT
+          value: "5432"
+        - name: PGUSER
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: postgres-username
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: postgres-password
+        - name: PGDATABASE
+          value: "budget_service"
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          echo "Waiting for database to be ready..."
+          until pg_isready; do
+            echo "Database not ready, waiting..."
+            sleep 2
+          done
+          echo "Database ready! Running initialization scripts..."
+          psql -f /scripts/01-schema.sql
+          echo "Budget database initialization completed!"
+        volumeMounts:
+        - name: budget-init-scripts
+          mountPath: /scripts
+      volumes:
+      - name: budget-init-scripts
+        configMap:
+          name: budget-db-init-scripts
+
+# Notification Service Database Initialization
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: notification-db-init-scripts
+  namespace: {{ .Values.global.namespace | default "coinsight" }}
+data:
+  01-schema.sql: |
+{{ .Files.Get "database/notification-init/01-schema.sql" | indent 4 }}
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: notification-db-init
+  namespace: {{ .Values.global.namespace | default "coinsight" }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  ttlSecondsAfterFinished: 120
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: notification-db-init
+        image: postgres:17-alpine
+        env:
+        - name: PGHOST
+          value: "{{ .Values.microservices.notificationService.database.host }}"
+        - name: PGPORT
+          value: "5432"
+        - name: PGUSER
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: postgres-username
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: postgres-password
+        - name: PGDATABASE
+          value: "notification_service"
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          echo "Waiting for database to be ready..."
+          until pg_isready; do
+            echo "Database not ready, waiting..."
+            sleep 2
+          done
+          echo "Database ready! Running initialization scripts..."
+          psql -f /scripts/01-schema.sql
+          echo "Notification database initialization completed!"
+        volumeMounts:
+        - name: notification-init-scripts
+          mountPath: /scripts
+      volumes:
+      - name: notification-init-scripts
+        configMap:
+          name: notification-db-init-scripts

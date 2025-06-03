@@ -1,0 +1,420 @@
+{{- if .Values.keycloakRealmInit.enabled }}
+---
+# ConfigMap containing the Keycloak initialization script
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-realm-init-script
+  namespace: {{ .Values.global.namespace | default "coinsight" }}
+  labels:
+    {{- include "coinsight-platform.labels" . | nindent 4 }}
+data:
+  init-keycloak-realm.sh: |
+    #!/bin/bash
+    
+    # Enhanced Keycloak Realm and Client Initialization Script
+    # This script creates clients, retrieves secrets, and updates K8s secrets
+    
+    set -e
+    
+    KEYCLOAK_URL="${KEYCLOAK_URL:-http://{{ .Values.keycloakRealmInit.keycloakService.name }}:{{ .Values.keycloakRealmInit.keycloakService.port }}}"
+    KEYCLOAK_ADMIN_USER="${KEYCLOAK_ADMIN_USER:-{{ .Values.keycloakRealmInit.adminCredentials.username }}}"
+    KEYCLOAK_ADMIN_PASSWORD="${KEYCLOAK_ADMIN_PASSWORD:-{{ .Values.keycloakRealmInit.adminCredentials.password }}}"
+    REALM_NAME="coinsight-realm"
+    K8S_NAMESPACE="{{ .Values.global.namespace | default "coinsight" }}"
+    
+    echo "🔑 Enhanced Keycloak realm initialization: $REALM_NAME"
+    echo "📍 Keycloak URL: $KEYCLOAK_URL"
+    
+    # Function to get admin token
+    get_admin_token() {
+        echo "🔐 Getting admin token..."
+        TOKEN_RESPONSE=$(curl -s -X POST "$KEYCLOAK_URL/realms/master/protocol/openid-connect/token" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "username=$KEYCLOAK_ADMIN_USER" \
+            -d "password=$KEYCLOAK_ADMIN_PASSWORD" \
+            -d "grant_type=password" \
+            -d "client_id=admin-cli")
+        
+        ACCESS_TOKEN=$(echo $TOKEN_RESPONSE | jq -r '.access_token')
+        if [ "$ACCESS_TOKEN" = "null" ]; then
+            echo "❌ Failed to get admin token"
+            echo "Response: $TOKEN_RESPONSE"
+            exit 1
+        fi
+        echo "✅ Admin token obtained"
+    }
+    
+    # Function to check if realm exists
+    check_realm_exists() {
+        echo "🔍 Checking if realm $REALM_NAME exists..."
+        REALM_CHECK=$(curl -s -X GET "$KEYCLOAK_URL/admin/realms/$REALM_NAME" \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            -w "%{http_code}" -o /dev/null)
+        
+        if [ "$REALM_CHECK" = "200" ]; then
+            echo "✅ Realm $REALM_NAME already exists"
+            return 0
+        else
+            echo "ℹ️  Realm $REALM_NAME does not exist"
+            return 1
+        fi
+    }
+    
+    # Function to create realm
+    create_realm() {
+        echo "🏗️  Creating realm: $REALM_NAME"
+        
+        REALM_JSON='{
+            "realm": "'$REALM_NAME'",
+            "enabled": true,
+            "registrationAllowed": true,
+            "registrationEmailAsUsername": true,
+            "rememberMe": true,
+            "verifyEmail": false,
+            "loginWithEmailAllowed": true,
+            "duplicateEmailsAllowed": false,
+            "resetPasswordAllowed": true,
+            "editUsernameAllowed": false,
+            "bruteForceProtected": true,
+            "accessTokenLifespan": 3600,
+            "ssoSessionIdleTimeout": 1800,
+            "ssoSessionMaxLifespan": 36000,
+            "defaultLocale": "en"
+        }'
+        
+        CREATE_RESPONSE=$(curl -s -X POST "$KEYCLOAK_URL/admin/realms" \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$REALM_JSON" \
+            -w "%{http_code}")
+        
+        if [ "${CREATE_RESPONSE: -3}" = "201" ]; then
+            echo "✅ Realm $REALM_NAME created successfully"
+        else
+            echo "❌ Failed to create realm. Response: $CREATE_RESPONSE"
+            exit 1
+        fi
+    }
+    
+    # Function to get client UUID by client ID
+    get_client_uuid() {
+        local client_id=$1
+        echo "🔍 Getting UUID for client: $client_id"
+        
+        CLIENT_UUID=$(curl -s -X GET "$KEYCLOAK_URL/admin/realms/$REALM_NAME/clients?clientId=$client_id" \
+            -H "Authorization: Bearer $ACCESS_TOKEN" | jq -r '.[0].id')
+        
+        if [ "$CLIENT_UUID" = "null" ] || [ -z "$CLIENT_UUID" ]; then
+            echo "❌ Failed to get UUID for client: $client_id"
+            return 1
+        fi
+        
+        echo "✅ Client UUID: $CLIENT_UUID"
+        echo "$CLIENT_UUID"
+    }
+    
+    # Function to get client secret
+    get_client_secret() {
+        local client_uuid=$1
+        local client_id=$2
+        
+        echo "🔐 Getting secret for client: $client_id"
+        
+        SECRET_RESPONSE=$(curl -s -X GET "$KEYCLOAK_URL/admin/realms/$REALM_NAME/clients/$client_uuid/client-secret" \
+            -H "Authorization: Bearer $ACCESS_TOKEN")
+        
+        CLIENT_SECRET=$(echo $SECRET_RESPONSE | jq -r '.value')
+        
+        if [ "$CLIENT_SECRET" = "null" ] || [ -z "$CLIENT_SECRET" ]; then
+            echo "❌ Failed to get secret for client: $client_id"
+            return 1
+        fi
+        
+        echo "✅ Retrieved secret for client: $client_id"
+        echo "$CLIENT_SECRET"
+    }
+    
+    # Enhanced function to create a client with authorization enabled
+    create_client_with_authorization() {
+        local client_id=$1
+        local enable_authorization=${2:-false}
+        
+        echo "🔧 Creating client: $client_id (Authorization: $enable_authorization)"
+        
+        CLIENT_JSON='{
+            "clientId": "'$client_id'",
+            "enabled": true,
+            "publicClient": false,
+            "bearerOnly": false,
+            "standardFlowEnabled": true,
+            "directAccessGrantsEnabled": true,
+            "serviceAccountsEnabled": true,
+            "authorizationServicesEnabled": '$enable_authorization',
+            "redirectUris": ["*"],
+            "webOrigins": ["*"],
+            "attributes": {
+                "access.token.lifespan": "3600"
+            }
+        }'
+        
+        # Check if client already exists
+        EXISTING_CLIENT=$(curl -s -X GET "$KEYCLOAK_URL/admin/realms/$REALM_NAME/clients?clientId=$client_id" \
+            -H "Authorization: Bearer $ACCESS_TOKEN")
+        
+        if [ "$(echo $EXISTING_CLIENT | jq '. | length')" -gt 0 ]; then
+            echo "✅ Client $client_id already exists"
+            return 0
+        fi
+        
+        CREATE_CLIENT_RESPONSE=$(curl -s -X POST "$KEYCLOAK_URL/admin/realms/$REALM_NAME/clients" \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$CLIENT_JSON" \
+            -w "%{http_code}")
+        
+        if [ "${CREATE_CLIENT_RESPONSE: -3}" = "201" ]; then
+            echo "✅ Client $client_id created successfully"
+        else
+            echo "❌ Failed to create client $client_id. Response: $CREATE_CLIENT_RESPONSE"
+            return 1
+        fi
+    }
+    
+    # Function to update Kubernetes secret
+    update_k8s_secret() {
+        local secret_key=$1
+        local client_secret=$2
+        
+        echo "🔄 Updating K8s secret key: $secret_key"
+        
+        # Update the main keycloak-secrets secret
+        kubectl patch secret keycloak-secrets \
+            --namespace="$K8S_NAMESPACE" \
+            --patch="{\"data\":{\"$secret_key\":\"$(echo -n $client_secret | base64)\"}}" 2>/dev/null || {
+            echo "⚠️  Could not update $secret_key, secret might not exist yet"
+            return 1
+        }
+        
+        echo "✅ Updated K8s secret key: $secret_key"
+    }
+    
+    # Function to create realm roles
+    create_realm_roles() {
+        echo "👥 Creating realm roles..."
+        
+        ROLES=("ROLE_USER" "ROLE_ADMIN" "ROLE_SERVICE")
+        
+        for role in "${ROLES[@]}"; do
+            echo "🏷️  Creating role: $role"
+            
+            ROLE_JSON='{
+                "name": "'$role'",
+                "description": "Realm role for '$role'",
+                "composite": false,
+                "clientRole": false
+            }'
+            
+            CREATE_ROLE_RESPONSE=$(curl -s -X POST "$KEYCLOAK_URL/admin/realms/$REALM_NAME/roles" \
+                -H "Authorization: Bearer $ACCESS_TOKEN" \
+                -H "Content-Type: application/json" \
+                -d "$ROLE_JSON" \
+                -w "%{http_code}")
+            
+            if [ "${CREATE_ROLE_RESPONSE: -3}" = "201" ]; then
+                echo "✅ Role $role created successfully"
+            else
+                echo "⚠️  Role $role might already exist"
+            fi
+        done
+    }
+    
+    # Function to wait for Keycloak
+    wait_for_keycloak() {
+        echo "⏳ Waiting for Keycloak to be ready..."
+        
+        for i in {1..60}; do
+            if curl -s -f "$KEYCLOAK_URL/realms/master" > /dev/null 2>&1; then
+                echo "✅ Keycloak is ready"
+                return 0
+            fi
+            echo "⏳ Attempt $i/60: Keycloak not ready yet, waiting 10 seconds..."
+            sleep 10
+        done
+        
+        echo "❌ Keycloak did not become ready within 10 minutes"
+        exit 1
+    }
+    
+    # Main execution
+    main() {
+        echo "🚀 Starting enhanced Keycloak realm initialization..."
+        
+        # Wait for Keycloak to be ready
+        wait_for_keycloak
+        
+        # Get admin token
+        get_admin_token
+        
+        # Check if realm exists, create if not
+        if ! check_realm_exists; then
+            create_realm
+        fi
+        
+        # Create realm roles
+        create_realm_roles
+        
+        # Create microservice clients and update K8s secrets
+        echo "🔧 Creating microservice clients with authorization..."
+        
+        # Define clients with authorization settings and their secret keys
+        declare -A CLIENTS=(
+            ["auth-service"]="true|auth-service-secret"
+            ["transaction-service"]="true|transaction-service-secret"
+            ["budget-service"]="true|budget-service-secret"
+            ["notification-service"]="true|notification-service-secret"
+            ["ocr-service"]="true|ocr-service-secret"
+            ["coinsight-app"]="false|gateway-client-secret"
+        )
+        
+        for client_config in "${!CLIENTS[@]}"; do
+            IFS='|' read -r enable_auth secret_key <<< "${CLIENTS[$client_config]}"
+            
+            # Create client
+            if create_client_with_authorization "$client_config" "$enable_auth"; then
+                # Get client UUID
+                if client_uuid=$(get_client_uuid "$client_config"); then
+                    # Get client secret
+                    if client_secret=$(get_client_secret "$client_uuid" "$client_config"); then
+                        # Update K8s secret
+                        update_k8s_secret "$secret_key" "$client_secret"
+                        
+                        echo "📋 Client: $client_config"
+                        echo "   Secret Key: $secret_key"
+                        echo "   Secret Value: $client_secret"
+                        echo ""
+                    fi
+                fi
+            fi
+        done
+        
+        echo "🎉 Enhanced Keycloak realm initialization completed!"
+    }
+    
+    # Check dependencies
+    if ! command -v jq &> /dev/null; then
+        echo "❌ jq is required but not installed."
+        exit 1
+    fi
+    
+    # Run main function
+    main
+
+---
+# Keycloak Realm Initialization Job
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: keycloak-realm-init
+  namespace: {{ .Values.global.namespace | default "coinsight" }}
+  labels:
+    {{- include "coinsight-platform.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: keycloak-realm-init
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ .Values.keycloakRealmInit.serviceAccount.name | default "keycloak-realm-init" }}
+      containers:
+      - name: keycloak-realm-init
+        image: curlimages/curl:8.5.0
+        command:
+        - /bin/sh
+        - -c
+        - |
+          # Install dependencies
+          apk add --no-cache jq
+          
+          # Install kubectl
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          mv kubectl /usr/local/bin/
+          
+          # Run the initialization script
+          chmod +x /scripts/init-keycloak-realm.sh
+          /scripts/init-keycloak-realm.sh
+        volumeMounts:
+        - name: init-script
+          mountPath: /scripts
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+      volumes:
+      - name: init-script
+        configMap:
+          name: keycloak-realm-init-script
+          defaultMode: 0755
+
+---
+# ServiceAccount for Keycloak realm initialization
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.keycloakRealmInit.serviceAccount.name | default "keycloak-realm-init" }}
+  namespace: {{ .Values.global.namespace | default "coinsight" }}
+  labels:
+    {{- include "coinsight-platform.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "1"
+
+---
+# Role for updating secrets
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: keycloak-realm-init-role
+  namespace: {{ .Values.global.namespace | default "coinsight" }}
+  labels:
+    {{- include "coinsight-platform.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "2"
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "patch", "update"]
+
+---
+# RoleBinding for the ServiceAccount
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: keycloak-realm-init-rolebinding
+  namespace: {{ .Values.global.namespace | default "coinsight" }}
+  labels:
+    {{- include "coinsight-platform.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "3"
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.keycloakRealmInit.serviceAccount.name | default "keycloak-realm-init" }}
+  namespace: {{ .Values.global.namespace | default "coinsight" }}
+roleRef:
+  kind: Role
+  name: keycloak-realm-init-role
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

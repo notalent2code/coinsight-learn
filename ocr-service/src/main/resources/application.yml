@@ -4,13 +4,9 @@ server:
 spring:
   application:
     name: ocr-service
-  config:
-    import: configserver:${CONFIG_SERVER_URI:http://localhost:8888}
   cloud:
     vault:
       enabled: false
-    config:
-      fail-fast: true
   security:
     oauth2:
       resourceserver:

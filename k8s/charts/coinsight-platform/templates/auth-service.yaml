@@ -1,0 +1,5 @@
+{{- if .Values.microservices.authService.enabled }}
+{{- include "microservice.deployment" (dict "serviceName" "auth-service" "config" .Values.microservices.authService "root" . "Release" .Release "Chart" .Chart) }}
+{{- printf "\n" }}
+{{- include "microservice.service" (dict "serviceName" "auth-service" "config" .Values.microservices.authService "root" . "Release" .Release "Chart" .Chart) }}
+{{- end }}

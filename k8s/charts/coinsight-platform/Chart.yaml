@@ -1,0 +1,74 @@
+apiVersion: v2
+name: coinsight-platform
+description: Coinsight Microservices Platform - Complete financial insights system
+
+# This is an umbrella chart that manages all microservices
+type: application
+
+# Chart version - increment when making changes to the chart
+version: 1.0.0
+
+# Application version - the version of Coinsight being deployed
+appVersion: "1.0.0"
+
+keywords:
+  - microservices
+  - fintech
+  - spring-boot
+  - kafka
+  - keycloak
+
+home: https://github.com/your-org/coinsight
+sources:
+  - https://github.com/your-org/coinsight
+
+maintainers:
+  - name: Coinsight Team
+    email: team@coinsight.com
+
+dependencies:
+  # Infrastructure dependencies
+  - name: postgresql
+    version: "~15.5.0"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: postgresql.enabled
+    alias: postgres-keycloak
+  
+  - name: postgresql
+    version: "~15.5.0" 
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: postgresql.enabled
+    alias: postgres-auth
+    
+  - name: postgresql
+    version: "~15.5.0"
+    repository: "https://charts.bitnami.com/bitnami" 
+    condition: postgresql.enabled
+    alias: postgres-transaction
+    
+  - name: postgresql
+    version: "~15.5.0"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: postgresql.enabled
+    alias: postgres-budget
+    
+  - name: postgresql
+    version: "~15.5.0"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: postgresql.enabled
+    alias: postgres-notification
+    
+  - name: kafka
+    version: "~26.8.0"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: kafka.enabled
+    
+  - name: redis
+    version: "~18.19.0"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: redis.enabled
+    
+  - name: keycloak
+    version: "~21.4.0"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: keycloak.enabled

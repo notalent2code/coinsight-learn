@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-repo
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "coinsight-platform.labels" . | nindent 4 }}
+data:
+  application.yml: |
+    {{- (.Files.Get "../../config-repo/application.yml") | nindent 4 }}
+  auth-service.yml: |
+    {{- (.Files.Get "../../config-repo/auth-service.yml") | nindent 4 }}
+  transaction-service.yml: |
+    {{- (.Files.Get "../../config-repo/transaction-service.yml") | nindent 4 }}
+  ocr-service.yml: |
+    {{- (.Files.Get "../../config-repo/ocr-service.yml") | nindent 4 }}
+  budget-service.yml: |
+    {{- (.Files.Get "../../config-repo/budget-service.yml") | nindent 4 }}
+  notification-service.yml: |
+    {{- (.Files.Get "../../config-repo/notification-service.yml") | nindent 4 }}
+  gateway-service.yml: |
+    {{- (.Files.Get "../../config-repo/gateway-service.yml") | nindent 4 }}

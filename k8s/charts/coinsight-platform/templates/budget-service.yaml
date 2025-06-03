@@ -1,0 +1,5 @@
+{{- if .Values.microservices.budgetService.enabled }}
+{{- include "microservice.deployment" (dict "serviceName" "budget-service" "config" .Values.microservices.budgetService "root" . "Release" .Release "Chart" .Chart) }}
+{{- printf "\n" }}
+{{- include "microservice.service" (dict "serviceName" "budget-service" "config" .Values.microservices.budgetService "root" . "Release" .Release "Chart" .Chart) }}
+{{- end }}

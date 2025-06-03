@@ -1,0 +1,5 @@
+{{- if .Values.microservices.ocrService.enabled }}
+{{- include "microservice.deployment" (dict "serviceName" "ocr-service" "config" .Values.microservices.ocrService "root" . "Release" .Release "Chart" .Chart) }}
+{{- printf "\n" }}
+{{- include "microservice.service" (dict "serviceName" "ocr-service" "config" .Values.microservices.ocrService "root" . "Release" .Release "Chart" .Chart) }}
+{{- end }}

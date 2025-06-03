@@ -14,7 +14,8 @@ NC='\033[0m' # No Color
 
 # Configuration
 MAX_PARALLEL_BUILDS=3  # Adjust based on your system
-SERVICES=("config-server" "auth-service" "transaction-service" "ocr-service" "budget-service" "notification-service" "gateway-service")
+# Removed config-server since we're using Kubernetes ConfigMaps instead of Spring Cloud Config
+SERVICES=("auth-service" "transaction-service" "ocr-service" "budget-service" "notification-service" "gateway-service")
 INFRASTRUCTURE_SERVICES=("postgres" "auth-db" "transaction-db" "budget-db" "notification-db" "keycloak" "zookeeper" "kafka" "redis" "prometheus" "grafana" "mailhog")
 
 # Enable BuildKit for faster builds and caching

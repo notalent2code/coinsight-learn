@@ -1,0 +1,65 @@
+{{- if .Values.configMaps.enabled }}
+---
+# Common application configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "coinsight-platform.labels" . | nindent 4 }}
+data:
+  # Actuator endpoints for monitoring
+  management.endpoints.web.exposure.include: "health,info,metrics,prometheus"
+  management.endpoint.health.show-details: "always"
+  management.endpoint.health.probes.enabled: "true"
+  
+  # Common Kafka configuration
+  kafka.topics.transactions: "transactions"
+  kafka.topics.budget-alerts: "budget-alerts"
+  kafka.topics.notifications: "notifications"
+
+---
+# Service URLs configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: service-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "coinsight-platform.labels" . | nindent 4 }}
+data:
+  # Service URLs (using Kubernetes service names)
+  auth-service-url: "http://auth-service:8081"
+  transaction-service-url: "http://transaction-service:8082"
+  ocr-service-url: "http://ocr-service:8083"
+  budget-service-url: "http://budget-service:8084"
+  notification-service-url: "http://notification-service:8085"
+  gateway-service-url: "http://gateway-service:8080"
+  
+  # Infrastructure service URLs
+  keycloak-url: "http://coinsight-platform-keycloak:8080"
+  kafka-servers: "coinsight-platform-kafka-broker:9092"
+  redis-host: "coinsight-platform-redis-master"
+  redis-port: "6379"
+  
+  # Database hosts per service
+  auth-service-db-host: "coinsight-platform-postgres-auth"
+  auth-service-db-name: "auth_service"
+  transaction-service-db-host: "coinsight-platform-postgres-transaction"
+  transaction-service-db-name: "transaction_service"
+  budget-service-db-host: "coinsight-platform-postgres-budget"
+  budget-service-db-name: "budget_service"
+  notification-service-db-host: "coinsight-platform-postgres-notification"
+  notification-service-db-name: "notification_service"
+  
+  # Azure configuration references
+  azure-form-recognizer-endpoint: "{{ .Values.azure.formRecognizer.endpoint }}"
+  azure-openai-endpoint: "{{ .Values.azure.openai.endpoint }}"
+  azure-openai-deployment-id: "{{ .Values.azure.openai.deploymentId }}"
+  
+  # Mail configuration references
+  mail-host: "{{ .Values.mail.host }}"
+  mail-port: "{{ .Values.mail.port }}"
+
+{{- end }}

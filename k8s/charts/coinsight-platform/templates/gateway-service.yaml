@@ -1,0 +1,5 @@
+{{- if .Values.microservices.gatewayService.enabled }}
+{{- include "microservice.deployment" (dict "serviceName" "gateway-service" "config" .Values.microservices.gatewayService "root" . "Release" .Release "Chart" .Chart) }}
+{{- printf "\n" }}
+{{- include "microservice.service" (dict "serviceName" "gateway-service" "config" .Values.microservices.gatewayService "root" . "Release" .Release "Chart" .Chart) }}
+{{- end }}

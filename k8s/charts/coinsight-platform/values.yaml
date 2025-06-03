@@ -1,0 +1,383 @@
+# Coinsight Platform Configuration
+# This file contains default values for the Coinsight microservices platform
+
+# Kubernetes-native configuration management
+configMaps:
+  enabled: true
+
+secrets:
+  enabled: true
+  # Database credentials
+  database:
+    username: "postgres"
+    password: "postgres"
+  
+  # Keycloak client secrets
+  keycloak:
+    authServiceSecret: "OgRK7as6bjDxNKT5qpAbAtaMKsg7c1bh"
+    budgetServiceSecret: "WiDKoqXBrEbkDjc6viFlAIHZFmu2M7vg"
+    notificationServiceSecret: "HmPlEAIi4rJA5VZAnCX822wEjdXaXc8o"
+    gatewayClientSecret: "qjcqpzF7tYmhGitMMQXOIJcmVJrJ2xPC"
+    ocrServiceSecret: "epNXpJWhzUqwH87VxspGLXh2hgC2mBkn"
+    transactionServiceSecret: "61fkBYf9jBS4tT3hcSYtoKA75pr0BcKn"
+  
+  # Azure API keys (replace with your actual keys)
+  azure:
+    formRecognizerApiKey: "2G2FhKKSMQIGInRgpEYKYZIrsHeJKPLPrLS9e6vnSJgu4LJwFM0tJQQJ99BEACqBBLyXJ3w3AAAAACOG0aZg"
+    openaiApiKey: "1IqZw7IsgY8qzgwH3XAxcEGp7qBCQThKmmo8VJVIL0Ics6jwZbScJQQJ99BEACHYHv6XJ3w3AAAAACOGxchg"
+  
+  # Mail credentials
+  mail:
+    username: ""
+    password: ""
+
+# External service configuration
+coinsightRealm: "coinsight-realm"
+
+# Database Initialization
+dbInit:
+  enabled: true
+
+azure:
+  formRecognizer:
+    endpoint: "https://coinsight-ocr.cognitiveservices.azure.com/"
+  openai:
+    endpoint: "https://coinsight-openai.openai.azure.com/"
+    deploymentId: "gpt-4.1"
+
+mail:
+  host: "mailhog"
+  port: "1025"
+
+global:
+  namespace: "coinsight"
+
+  # Global image settings
+  image:
+    registry: "docker.io"
+    pullPolicy: Always
+    tag: "latest"
+  
+  # Global security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1001
+    fsGroup: 1001
+  
+  # Resource limits (laptop-friendly settings)
+  resources:
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+
+# Infrastructure Dependencies
+postgres-auth:
+  enabled: true
+  auth:
+    database: "auth_service"
+    username: "postgres"
+    password: "postgres"
+  primary:
+    persistence:
+      size: 1Gi
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "50m"
+      limits:
+        memory: "256Mi"
+        cpu: "200m"
+
+postgres-transaction:
+  enabled: true
+  auth:
+    database: "transaction_service"
+    username: "postgres"
+    password: "postgres"
+  primary:
+    persistence:
+      size: 2Gi
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "50m"
+      limits:
+        memory: "256Mi"
+        cpu: "200m"
+
+postgres-budget:
+  enabled: true
+  auth:
+    database: "budget_service"
+    username: "postgres"
+    password: "postgres"
+  primary:
+    persistence:
+      size: 1Gi
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "50m"
+      limits:
+        memory: "256Mi"
+        cpu: "200m"
+
+postgres-notification:
+  enabled: true
+  auth:
+    database: "notification_service"
+    username: "postgres"
+    password: "postgres"
+  primary:
+    persistence:
+      size: 1Gi
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "50m"
+      limits:
+        memory: "256Mi"
+        cpu: "200m"
+
+postgres-keycloak:
+  enabled: true
+  auth:
+    database: "keycloak"
+    username: "postgres"
+    password: "postgres"
+  primary:
+    persistence:
+      size: 1Gi
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "50m"
+      limits:
+        memory: "256Mi"
+        cpu: "200m"
+
+kafka:
+  enabled: true
+  kraft:
+    enabled: true
+  controller:
+    replicaCount: 1
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "50m"
+      limits:
+        memory: "256Mi"
+        cpu: "200m"
+  broker:
+    replicaCount: 1
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "50m"
+      limits:
+        memory: "256Mi"
+        cpu: "200m"
+  persistence:
+    size: 2Gi
+
+redis:
+  enabled: true
+  auth:
+    enabled: false
+  master:
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "25m"
+      limits:
+        memory: "128Mi"
+        cpu: "100m"
+    persistence:
+      size: 1Gi
+
+keycloak:
+  enabled: true
+  auth:
+    adminUser: "admin"
+    adminPassword: "admin"
+  service:
+    type: NodePort
+    nodePorts:
+      http: 30090
+  postgresql:
+    enabled: false  # We use our own postgres-keycloak
+  externalDatabase:
+    host: "coinsight-platform-postgres-keycloak"
+    port: 5432
+    user: "postgres"
+    password: "postgres"
+    database: "keycloak"
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "200m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+
+# Custom Keycloak Realm Initialization Configuration
+keycloakRealmInit:
+  enabled: true
+  keycloakService:
+    name: "coinsight-platform-keycloak"
+    port: 8080
+  adminCredentials:
+    username: "admin"
+    password: "admin"
+  serviceAccount:
+    name: "keycloak-realm-init"
+
+# Microservices Configuration
+microservices:
+  # Config Server - DISABLED (migrated to ConfigMaps/Secrets)
+  # configServer:
+  #   enabled: false
+  #   image:
+  #     repository: "coinsight/config-server"
+  #     tag: "latest"
+  #   service:
+  #     port: 8888
+  #   resources:
+  #     requests:
+  #       memory: "128Mi"
+  #       cpu: "50m"
+  #     limits:
+  #       memory: "256Mi"
+  #       cpu: "200m"
+
+  # Auth Service
+  authService:
+    enabled: true
+    image:
+      repository: "coinsight/auth-service"
+      tag: "latest"
+    service:
+      port: 8081
+    database:
+      host: "coinsight-platform-postgres-auth"
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "300m"
+
+  # Transaction Service
+  transactionService:
+    enabled: true
+    image:
+      repository: "coinsight/transaction-service"
+      tag: "latest"
+    service:
+      port: 8082
+    database:
+      host: "coinsight-platform-postgres-transaction"
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "300m"
+
+  # OCR Service
+  ocrService:
+    enabled: true
+    image:
+      repository: "coinsight/ocr-service"
+      tag: "latest"
+    service:
+      port: 8083
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "200m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+
+  # Budget Service
+  budgetService:
+    enabled: true
+    image:
+      repository: "coinsight/budget-service"
+      tag: "latest"
+    service:
+      port: 8084
+    database:
+      host: "coinsight-platform-postgres-budget"
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "300m"
+
+  # Notification Service
+  notificationService:
+    enabled: true
+    image:
+      repository: "coinsight/notification-service"
+      tag: "latest"
+    service:
+      port: 8085
+    database:
+      host: "coinsight-platform-postgres-notification"
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "300m"
+
+  # Gateway Service - API Gateway
+  gatewayService:
+    enabled: true
+    image:
+      repository: "coinsight/gateway-service"
+      tag: "latest"
+    service:
+      port: 8080
+      type: NodePort
+      nodePort: 30080
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "300m"
+
+# Ingress Configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+  hosts:
+    - host: coinsight.local
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: gateway-service
+              port:
+                number: 8080
+
+# Monitoring (optional, can be enabled later)
+monitoring:
+  enabled: false
+  prometheus:
+    enabled: false
+  grafana:
+    enabled: false

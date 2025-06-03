@@ -1,0 +1,39 @@
+# Kind cluster configuration for Coinsight microservices
+# This creates a cluster optimized for local development
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: coinsight-cluster
+nodes:
+- role: control-plane
+  kubeadmConfigPatches:
+  - |
+    kind: InitConfiguration
+    nodeRegistration:
+      kubeletExtraArgs:
+        node-labels: "ingress-ready=true"
+  extraPortMappings:
+  # Gateway Service (main entry point)
+  - containerPort: 80
+    hostPort: 8080
+    protocol: TCP
+  - containerPort: 443
+    hostPort: 8443
+    protocol: TCP
+  # Keycloak
+  - containerPort: 30090
+    hostPort: 8090
+    protocol: TCP
+  # Prometheus monitoring
+  - containerPort: 30900
+    hostPort: 9090
+    protocol: TCP
+  # Grafana dashboard
+  - containerPort: 30300
+    hostPort: 3000
+    protocol: TCP
+- role: worker
+  labels:
+    tier: services
+- role: worker
+  labels:
+    tier: data

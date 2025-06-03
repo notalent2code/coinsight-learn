@@ -1,0 +1,5 @@
+{{- if .Values.microservices.notificationService.enabled }}
+{{- include "microservice.deployment" (dict "serviceName" "notification-service" "config" .Values.microservices.notificationService "root" . "Release" .Release "Chart" .Chart) }}
+{{- printf "\n" }}
+{{- include "microservice.service" (dict "serviceName" "notification-service" "config" .Values.microservices.notificationService "root" . "Release" .Release "Chart" .Chart) }}
+{{- end }}

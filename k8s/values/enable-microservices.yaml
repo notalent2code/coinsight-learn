@@ -1,0 +1,15 @@
+microservices:
+  # configServer:
+  #   enabled: false
+  authService:
+    enabled: true
+  transactionService:
+    enabled: true
+  ocrService:
+    enabled: true
+  budgetService:
+    enabled: true
+  notificationService:
+    enabled: true
+  gatewayService:
+    enabled: true

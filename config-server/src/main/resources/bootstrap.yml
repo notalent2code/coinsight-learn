@@ -3,12 +3,13 @@ spring:
     name: config-server
   cloud:
     vault:
-      host: vault
-      port: 8200
-      scheme: http
-      authentication: token
-      token: ${VAULT_TOKEN:myroot}
-      connection-timeout: 5000
-      read-timeout: 15000
-      config:
-        order: -10
+      enabled: false
+    #   host: vault
+    #   port: 8200
+    #   scheme: http
+    #   authentication: token
+    #   token: ${VAULT_TOKEN:myroot}
+    #   connection-timeout: 5000
+    #   read-timeout: 15000
+    #   config:
+    #     order: -10
