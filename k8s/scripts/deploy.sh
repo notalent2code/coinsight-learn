@@ -3,6 +3,25 @@
 # Deploy Coinsight Platform to Kubernetes
 set -e
 
+# Function to show deployment progress
+show_progress() {
+    local message=$1
+    local timeout=${2:-60}
+    local interval=${3:-10}
+    local iterations=$((timeout / interval))
+    
+    echo "$message"
+    for ((i=1; i<=iterations; i++)); do
+        echo "   ⏱️  Progress check ${i}/${iterations}..."
+        kubectl get pods -o wide | grep -E "(Running|Pending|ContainerCreating|ImagePullBackOff|CrashLoopBackOff)" | head -10
+        if [ $i -lt $iterations ]; then
+            echo "   ⏳ Waiting ${interval}s before next check..."
+            sleep $interval
+        fi
+    done
+    echo ""
+}
+
 echo "🚀 Deploying Coinsight Platform to Kubernetes..."
 
 # Check if kubectl is configured
@@ -26,9 +45,22 @@ echo "🧹 Cleaning up any existing database init jobs..."
 kubectl delete jobs -l "helm.sh/hook" -n coinsight --ignore-not-found=true
 
 echo "📦 Deploying infrastructure dependencies first..."
+echo "   This includes PostgreSQL databases, Redis, Kafka, and Keycloak"
+echo ""
 
 # Deploy infrastructure components in order
-echo "1️⃣ Installing PostgreSQL instances..."
+echo "1️⃣ Installing PostgreSQL instances and infrastructure components..."
+echo "   ➤ Deploying: PostgreSQL (auth, transaction, budget, notification, keycloak)"
+echo "   ➤ Deploying: Redis cluster"
+echo "   ➤ Deploying: Kafka with KRaft"
+echo "   ➤ Deploying: Keycloak identity server"
+echo "   ➤ Microservices are DISABLED in this step"
+echo ""
+echo "🚀 Running Helm upgrade for infrastructure..."
+echo "   Command: helm upgrade --install coinsight-platform k8s/charts/coinsight-platform"
+echo "   Parameters: microservices disabled, wait enabled, timeout 300s"
+echo ""
+
 helm upgrade --install coinsight-platform k8s/charts/coinsight-platform \
     --namespace coinsight \
     --set microservices.authService.enabled=false \
@@ -39,21 +71,110 @@ helm upgrade --install coinsight-platform k8s/charts/coinsight-platform \
     --set microservices.gatewayService.enabled=false \
     --wait --timeout=300s
 
-echo "⏳ Waiting for databases to be ready..."
-kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=postgresql --timeout=300s
+echo "✅ Infrastructure deployment completed!"
+echo ""
+echo "📊 Current pod status after infrastructure deployment:"
+kubectl get pods -o wide
+echo ""
 
-echo "3️⃣ Deploying all microservices..."
+echo "⏳ Waiting for PostgreSQL databases to be ready..."
+echo "   This may take 1-2 minutes for all databases to start up..."
+
+# Show progress while waiting for databases
+echo "🔄 Monitoring database startup..."
+for i in {1..12}; do
+    echo "   ⏱️  Database check ${i}/12 (every 15s)..."
+    kubectl get pods | grep postgres | grep -v NAME
+    ready_count=$(kubectl get pods --no-headers | grep postgres | grep "1/1.*Running" | wc -l)
+    total_count=$(kubectl get pods --no-headers | grep postgres | wc -l)
+    echo "   📊 Ready: ${ready_count}/${total_count} PostgreSQL databases"
+    
+    if [ "$ready_count" -eq "$total_count" ] && [ "$total_count" -gt 0 ]; then
+        echo "   ✅ All databases are ready!"
+        break
+    fi
+    
+    if [ $i -lt 12 ]; then
+        echo "   ⏳ Waiting 15s before next check..."
+        sleep 15
+    fi
+done
+
+kubectl wait --for=condition=ready pod -l "app.kubernetes.io/name" --timeout=60s | grep postgres || true
+
+echo "✅ All PostgreSQL databases are ready!"
+echo ""
+echo "📊 Database pod status:"
+kubectl get pods | grep postgres
+echo ""
+
+echo "🔍 Checking infrastructure health before deploying microservices..."
+echo "   ➤ Kafka status:"
+kubectl get pods -l app.kubernetes.io/name=kafka
+echo "   ➤ Redis status:"
+kubectl get pods -l app.kubernetes.io/name=redis
+echo "   ➤ Keycloak status:"
+kubectl get pods -l app.kubernetes.io/name=keycloak
+echo ""
+
+echo "2️⃣ Deploying all microservices..."
+echo "   ➤ Enabling: auth-service (port 8081)"
+echo "   ➤ Enabling: transaction-service (port 8082)"
+echo "   ➤ Enabling: ocr-service (port 8083)"
+echo "   ➤ Enabling: budget-service (port 8084)"
+echo "   ➤ Enabling: notification-service (port 8085)"
+echo "   ➤ Enabling: gateway-service (port 8080)"
+echo ""
+echo "🚀 Running Helm upgrade for microservices..."
+echo "   Command: helm upgrade --install coinsight-platform k8s/charts/coinsight-platform"
+echo "   Parameters: all microservices enabled, wait enabled, timeout 300s"
+echo ""
+
 helm upgrade --install coinsight-platform k8s/charts/coinsight-platform \
     --namespace coinsight \
-    --wait --timeout=600s
+    --set microservices.authService.enabled=true \
+    --set microservices.transactionService.enabled=true \
+    --set microservices.ocrService.enabled=true \
+    --set microservices.budgetService.enabled=true \
+    --set microservices.notificationService.enabled=true \
+    --set microservices.gatewayService.enabled=true \
+    --wait --timeout=300s
+
+echo "✅ Microservices deployment completed!"
+echo ""
+echo "📊 Current pod status after microservices deployment:"
+kubectl get pods -o wide
+echo ""
 
 echo "⏳ Waiting for all services to be ready..."
+echo "   This may take 2-3 minutes for all microservices to start up..."
+echo "   Services need to:"
+echo "   ➤ Download/load Docker images"
+echo "   ➤ Initialize Spring Boot applications"
+echo "   ➤ Connect to databases and Keycloak"
+echo "   ➤ Pass health checks"
+echo ""
+
+# Show progress while waiting
+echo "🔄 Monitoring startup progress..."
+for i in {1..10}; do
+    echo "   ⏱️  Checking startup progress (${i}/10)..."
+    kubectl get pods --no-headers | grep -E "(auth-service|transaction-service|ocr-service|budget-service|notification-service|gateway-service)" | while read line; do
+        name=$(echo $line | awk '{print $1}')
+        status=$(echo $line | awk '{print $3}')
+        ready=$(echo $line | awk '{print $2}')
+        echo "      ➤ $name: $status ($ready)"
+    done
+    echo ""
+    sleep 30
+done
+
 kubectl wait --for=condition=ready pod --all --timeout=600s --ignore-not-found=true
 
 echo ""
 echo "🎉 Deployment completed successfully!"
 echo ""
-echo "📋 Checking service status:"
+echo "📋 Final service status:"
 kubectl get pods -o wide
 echo ""
 echo "🌐 Service endpoints:"
@@ -63,11 +184,19 @@ echo "🔗 Gateway service should be accessible at:"
 echo "  NodePort: http://localhost:30080"
 echo "  Ingress: http://coinsight.local (add to /etc/hosts: 127.0.0.1 coinsight.local)"
 echo ""
-echo "🔍 Check logs with:"
-echo "  kubectl logs -f deployment/gateway-service"
+echo "🔍 Useful commands:"
+echo "  Check gateway logs:           kubectl logs -f deployment/gateway-service"
+echo "  Check auth service logs:      kubectl logs -f deployment/auth-service"
+echo "  Check transaction logs:       kubectl logs -f deployment/transaction-service"
+echo "  Check all service status:     kubectl get pods -w"
 echo ""
 echo "🔍 Check database init job logs:"
 echo "  kubectl logs job/auth-db-init -n coinsight"
 echo "  kubectl logs job/transaction-db-init -n coinsight"
 echo "  kubectl logs job/budget-db-init -n coinsight"
 echo "  kubectl logs job/notification-db-init -n coinsight"
+echo ""
+echo "🎯 Next steps:"
+echo "  1. Initialize Keycloak realm: k8s/scripts/init-keycloak-realm.sh"
+echo "  2. Test the gateway: curl http://localhost:30080/actuator/health"
+echo "  3. Monitor services: kubectl get pods -w"
