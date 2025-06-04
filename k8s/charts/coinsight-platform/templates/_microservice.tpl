@@ -1,4 +1,23 @@
 {{/*
+Common labels for microservices
+*/}}
+{{- define "microservice.labels" -}}
+helm.sh/chart: {{ .root.Chart.Name }}-{{ .root.Chart.Version | replace "+" "_" }}
+app.kubernetes.io/name: {{ .serviceName }}
+app.kubernetes.io/instance: {{ .root.Release.Name }}
+app.kubernetes.io/version: {{ .root.Chart.AppVersion }}
+app.kubernetes.io/managed-by: {{ .root.Release.Service }}
+{{- end }}
+
+{{/*
+Selector labels for microservices
+*/}}
+{{- define "microservice.selectorLabels" -}}
+app.kubernetes.io/name: {{ .serviceName }}
+app.kubernetes.io/instance: {{ .root.Release.Name }}
+{{- end }}
+
+{{/*
 Microservice deployment template with Kubernetes-native configuration
 Usage: {{ include "microservice.deployment" (dict "serviceName" "auth-service" "config" .Values.microservices.authService "root" . "Release" .Release "Chart" .Chart) }}
 */}}
@@ -29,7 +48,7 @@ spec:
         args:
         - |
           echo "Waiting for database to be ready..."
-          until pg_isready -h {{ .config.database.host }} -p 5432; do
+          until pg_isready -h {{ .config.database.host }}.coinsight.svc.cluster.local -p 5432; do
             echo "Database not ready, waiting..."
             sleep 5
           done
@@ -73,7 +92,7 @@ spec:
         
         # Keycloak configuration from ConfigMaps and Secrets
         - name: KEYCLOAK_URL
-          value: "http://coinsight-platform-keycloak:8080"
+          value: "http://coinsight-platform-keycloak.coinsight.svc.cluster.local"
         - name: KEYCLOAK_REALM
           value: "coinsight-realm"
         {{- if eq .serviceName "auth-service" }}

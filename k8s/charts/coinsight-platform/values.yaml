@@ -407,11 +407,11 @@ microservices:
       nodePort: 30080
     resources:
       requests:
-        memory: "256Mi"
-        cpu: "100m"
-      limits:
         memory: "512Mi"
         cpu: "300m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
 
 # Ingress Configuration
 ingress:

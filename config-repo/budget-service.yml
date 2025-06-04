@@ -21,7 +21,7 @@ spring:
         jwt:
           issuer-uri: ${KEYCLOAK_URL:http://keycloak:8080}/realms/${KEYCLOAK_REALM:coinsight-realm}
   kafka:
-    bootstrap-servers: ${KAFKA_SERVERS:kafka:9092}
+    bootstrap-servers: ${KAFKA_SERVERS:coinsight-platform-kafka.coinsight.svc.cluster.local:9092}
     consumer:
       group-id: budget-service
       auto-offset-reset: latest
@@ -37,7 +37,7 @@ spring:
 
 # Keycloak configuration
 keycloak:
-  auth-server-url: ${KEYCLOAK_URL:http://keycloak:8080}
+  auth-server-url: ${KEYCLOAK_URL:http://coinsight-platform-keycloak.coinsight.svc.cluster.local}
   realm: ${KEYCLOAK_REALM:coinsight-realm}
   resource: ${KEYCLOAK_CLIENT:budget-service}
   public-client: false
@@ -50,9 +50,9 @@ keycloak:
 # Service endpoints
 services:
   auth-service:
-    url: ${AUTH_SERVICE_URL:http://auth-service:8081}
+    url: ${AUTH_SERVICE_URL:http://auth-service.coinsight.svc.cluster.local:8081}
   transaction-service:
-    url: ${TRANSACTION_SERVICE_URL:http://transaction-service:8082}
+    url: ${TRANSACTION_SERVICE_URL:http://transaction-service.coinsight.svc.cluster.local:8082}
 
 # Logging configuration
 logging:

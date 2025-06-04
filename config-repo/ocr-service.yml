@@ -16,7 +16,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${KEYCLOAK_URL:http://keycloak:8080}/realms/${KEYCLOAK_REALM:coinsight-realm}
+          issuer-uri: ${KEYCLOAK_URL:http://coinsight-platform-keycloak.coinsight.svc.cluster.local}/realms/${KEYCLOAK_REALM:coinsight-realm}
   # HTTP timeout configurations
   servlet:
     multipart:
@@ -57,14 +57,14 @@ http:
 # Service URLs for communication
 services:
   transaction:
-    url: ${TRANSACTION_SERVICE_URL:http://transaction-service:8081}
+    url: ${TRANSACTION_SERVICE_URL:http://transaction-service.coinsight.svc.cluster.local:8082}
     endpoints:
       create: /api/transactions
       categories: /api/transaction-categories
 
 # Keycloak configuration
 keycloak:
-  auth-server-url: ${KEYCLOAK_URL:http://keycloak:8080}
+  auth-server-url: ${KEYCLOAK_URL:http://coinsight-platform-keycloak.coinsight.svc.cluster.local}
   realm: ${KEYCLOAK_REALM:coinsight-realm}
   resource: ${KEYCLOAK_CLIENT:ocr-service}
   public-client: false

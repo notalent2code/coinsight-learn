@@ -29,28 +29,28 @@ metadata:
   labels:
     {{- include "coinsight-platform.labels" . | nindent 4 }}
 data:
-  # Service URLs (using Kubernetes service names)
-  auth-service-url: "http://auth-service:8081"
-  transaction-service-url: "http://transaction-service:8082"
-  ocr-service-url: "http://ocr-service:8083"
-  budget-service-url: "http://budget-service:8084"
-  notification-service-url: "http://notification-service:8085"
-  gateway-service-url: "http://gateway-service:8080"
+  # Service URLs (using Kubernetes service names with namespace qualification)
+  auth-service-url: "http://auth-service.coinsight.svc.cluster.local:8081"
+  transaction-service-url: "http://transaction-service.coinsight.svc.cluster.local:8082"
+  ocr-service-url: "http://ocr-service.coinsight.svc.cluster.local:8083"
+  budget-service-url: "http://budget-service.coinsight.svc.cluster.local:8084"
+  notification-service-url: "http://notification-service.coinsight.svc.cluster.local:8085"
+  gateway-service-url: "http://gateway-service.coinsight.svc.cluster.local:8080"
   
-  # Infrastructure service URLs
-  keycloak-url: "http://coinsight-platform-keycloak:8080"
-  kafka-servers: "coinsight-platform-kafka-broker:9092"
-  redis-host: "coinsight-platform-redis-master"
+  # Infrastructure service URLs (using full Kubernetes DNS names)
+  keycloak-url: "http://coinsight-platform-keycloak.coinsight.svc.cluster.local"
+  kafka-servers: "coinsight-platform-kafka.coinsight.svc.cluster.local:9092"
+  redis-host: "coinsight-platform-redis-master.coinsight.svc.cluster.local"
   redis-port: "6379"
   
-  # Database hosts per service
-  auth-service-db-host: "coinsight-platform-postgres-auth"
+  # Database hosts per service (using full Kubernetes DNS names)
+  auth-service-db-host: "coinsight-platform-postgres-auth.coinsight.svc.cluster.local"
   auth-service-db-name: "auth_service"
-  transaction-service-db-host: "coinsight-platform-postgres-transaction"
+  transaction-service-db-host: "coinsight-platform-postgres-transaction.coinsight.svc.cluster.local"
   transaction-service-db-name: "transaction_service"
-  budget-service-db-host: "coinsight-platform-postgres-budget"
+  budget-service-db-host: "coinsight-platform-postgres-budget.coinsight.svc.cluster.local"
   budget-service-db-name: "budget_service"
-  notification-service-db-host: "coinsight-platform-postgres-notification"
+  notification-service-db-host: "coinsight-platform-postgres-notification.coinsight.svc.cluster.local"
   notification-service-db-name: "notification_service"
   
   # Azure configuration references

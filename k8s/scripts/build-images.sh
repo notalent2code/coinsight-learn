@@ -14,9 +14,31 @@ NC='\033[0m' # No Color
 
 # Configuration
 MAX_PARALLEL_BUILDS=3  # Adjust based on your system
-SERVICES=("auth-service" "transaction-service" "ocr-service" "budget-service" "notification-service" "gateway-service")
+ALL_SERVICES=("auth-service" "transaction-service" "ocr-service" "budget-service" "notification-service" "gateway-service")
 CLUSTER_NAME="coinsight-cluster"
 IMAGE_REGISTRY="coinsight"
+
+# Parse command line arguments
+if [ $# -eq 0 ]; then
+    # No arguments - build all services
+    SERVICES=("${ALL_SERVICES[@]}")
+    echo -e "${YELLOW}📦 Building all services...${NC}"
+elif [ $# -eq 1 ]; then
+    # One argument - build specific service
+    TARGET_SERVICE="$1"
+    if [[ " ${ALL_SERVICES[@]} " =~ " ${TARGET_SERVICE} " ]]; then
+        SERVICES=("$TARGET_SERVICE")
+        echo -e "${YELLOW}📦 Building single service: $TARGET_SERVICE${NC}"
+    else
+        echo -e "${RED}❌ Unknown service: $TARGET_SERVICE${NC}"
+        echo -e "${YELLOW}Available services: ${ALL_SERVICES[*]}${NC}"
+        exit 1
+    fi
+else
+    echo -e "${RED}❌ Usage: $0 [service-name]${NC}"
+    echo -e "${YELLOW}Available services: ${ALL_SERVICES[*]}${NC}"
+    exit 1
+fi
 
 # Enable BuildKit for faster builds and caching
 export DOCKER_BUILDKIT=1
@@ -26,7 +48,7 @@ echo -e "${BLUE}🚀 Starting optimized Kubernetes microservices build...${NC}"
 echo -e "${YELLOW}📊 Build configuration:${NC}"
 echo -e "   • BuildKit: enabled"
 echo -e "   • Max parallel builds: $MAX_PARALLEL_BUILDS"
-echo -e "   • Services: ${#SERVICES[@]}"
+echo -e "   • Services to build: ${#SERVICES[@]} (${SERVICES[*]})"
 echo -e "   • Target cluster: $CLUSTER_NAME"
 echo ""
 

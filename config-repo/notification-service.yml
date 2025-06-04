@@ -19,9 +19,9 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${KEYCLOAK_URL:http://keycloak:8080}/realms/${KEYCLOAK_REALM:coinsight-realm}
+          issuer-uri: ${KEYCLOAK_URL:http://coinsight-platform-keycloak.coinsight.svc.cluster.local}/realms/${KEYCLOAK_REALM:coinsight-realm}
   kafka:
-    bootstrap-servers: ${KAFKA_SERVERS:kafka:9092}
+    bootstrap-servers: ${KAFKA_SERVERS:coinsight-platform-kafka.coinsight.svc.cluster.local:9092}
     consumer:
       group-id: notification-service
       auto-offset-reset: latest
@@ -50,7 +50,7 @@ spring:
 
 # Keycloak configuration
 keycloak:
-  auth-server-url: ${KEYCLOAK_URL:http://keycloak:8080}
+  auth-server-url: ${KEYCLOAK_URL:http://coinsight-platform-keycloak.coinsight.svc.cluster.local}
   realm: ${KEYCLOAK_REALM:coinsight-realm}
   resource: ${KEYCLOAK_CLIENT:notification-service}
   public-client: false
@@ -63,9 +63,9 @@ keycloak:
 # Service endpoints
 services:
   auth-service:
-    url: ${AUTH_SERVICE_URL:http://auth-service:8081}
+    url: ${AUTH_SERVICE_URL:http://auth-service.coinsight.svc.cluster.local:8081}
   budget-service:
-    url: ${BUDGET_SERVICE_URL:http://budget-service:8084}
+    url: ${BUDGET_SERVICE_URL:http://budget-service.coinsight.svc.cluster.local:8084}
 
 # Logging configuration
 logging:

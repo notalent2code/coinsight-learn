@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: gateway-service
+  data:
+    redis:
+      host: ${REDIS_HOST:coinsight-platform-redis-master.coinsight.svc.cluster.local}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
   cloud:
     vault:
       enabled: false

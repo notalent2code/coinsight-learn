@@ -19,6 +19,10 @@ nodes:
   - containerPort: 443
     hostPort: 8443
     protocol: TCP
+  # Gateway Service NodePort
+  - containerPort: 30080
+    hostPort: 30080
+    protocol: TCP
   # Keycloak
   - containerPort: 30090
     hostPort: 8090

@@ -169,7 +169,10 @@ for i in {1..10}; do
     sleep 30
 done
 
-kubectl wait --for=condition=ready pod --all --timeout=600s --ignore-not-found=true
+kubectl wait --for=condition=ready pod --all --timeout=300s --ignore-not-found=true
+
+echo "🔄 Restarting deployments to ensure latest image is used..."
+kubectl rollout restart deployment -n coinsight
 
 echo ""
 echo "🎉 Deployment completed successfully!"

@@ -19,14 +19,14 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${KEYCLOAK_URL:http://keycloak:8080}/realms/${KEYCLOAK_REALM:coinsight-realm}
+          issuer-uri: ${KEYCLOAK_URL:http://coinsight-platform-keycloak.coinsight.svc.cluster.local}/realms/${KEYCLOAK_REALM:coinsight-realm}
   # Add Redis configuration
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
   kafka:
-    bootstrap-servers: ${KAFKA_SERVERS:kafka:9092}
+    bootstrap-servers: ${KAFKA_SERVERS:coinsight-platform-kafka.coinsight.svc.cluster.local:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -36,7 +36,7 @@ spring:
 
 # Keycloak configuration
 keycloak:
-  auth-server-url: ${KEYCLOAK_URL:http://keycloak:8080}
+  auth-server-url: ${KEYCLOAK_URL:http://coinsight-platform-keycloak.coinsight.svc.cluster.local}
   realm: ${KEYCLOAK_REALM:coinsight-realm}
   resource: ${KEYCLOAK_CLIENT:transaction-service}
   public-client: false

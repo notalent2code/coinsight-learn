@@ -12,7 +12,7 @@ spring:
     # show-sql: true
     
 keycloak:
-  auth-server-url: ${KEYCLOAK_URL:http://keycloak:8080}
+  auth-server-url: ${KEYCLOAK_URL:http://coinsight-platform-keycloak.coinsight.svc.cluster.local}
   realm: ${KEYCLOAK_REALM:coinsight-realm}
   resource: ${KEYCLOAK_CLIENT:auth-service}
   public-client: false

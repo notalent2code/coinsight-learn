@@ -7,6 +7,8 @@ Expand the name of the chart.
 
 {{/*
 Create a default fully qualified app name.
+We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
+If release name contains chart name it will be used as a full name.
 */}}
 {{- define "coinsight-platform.fullname" -}}
 {{- if .Values.fullnameOverride }}
@@ -38,7 +40,6 @@ helm.sh/chart: {{ include "coinsight-platform.chart" . }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
-app.kubernetes.io/part-of: coinsight-platform
 {{- end }}
 
 {{/*
@@ -58,64 +59,4 @@ Create the name of the service account to use
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
-{{- end }}
-
-{{/*
-Generate microservice labels for a specific service
-*/}}
-{{- define "microservice.labels" -}}
-app.kubernetes.io/name: {{ .serviceName }}
-app.kubernetes.io/instance: {{ .Release.Name }}
-app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
-app.kubernetes.io/component: microservice
-app.kubernetes.io/part-of: coinsight-platform
-app.kubernetes.io/managed-by: {{ .Release.Service }}
-helm.sh/chart: {{ include "coinsight-platform.chart" .root }}
-{{- end }}
-
-{{/*
-Generate microservice selector labels
-*/}}
-{{- define "microservice.selectorLabels" -}}
-app.kubernetes.io/name: {{ .serviceName }}
-app.kubernetes.io/instance: {{ .Release.Name }}
-{{- end }}
-
-{{/*
-Generate database host for a service
-*/}}
-{{- define "database.host" -}}
-{{- if .Values.global.database.external }}
-{{- .Values.global.database.host }}
-{{- else }}
-{{- printf "%s-postgres-%s" (include "coinsight-platform.fullname" .) .serviceName }}
-{{- end }}
-{{- end }}
-
-{{/*
-Generate common environment variables for all microservices
-*/}}
-{{- define "microservice.env" -}}
-- name: SPRING_PROFILES_ACTIVE
-  value: "kubernetes"
-- name: KEYCLOAK_URL
-  value: "http://{{ include "coinsight-platform.fullname" . }}-keycloak:8080"
-- name: KEYCLOAK_REALM
-  value: "coinsight-realm"
-- name: KAFKA_SERVERS
-  value: "{{ include "coinsight-platform.fullname" . }}-kafka:9092"
-- name: REDIS_HOST
-  value: "{{ include "coinsight-platform.fullname" . }}-redis-master"
-- name: REDIS_PORT
-  value: "6379"
-- name: AUTH_SERVICE_URL
-  value: "http://auth-service:8081"
-- name: TRANSACTION_SERVICE_URL
-  value: "http://transaction-service:8082"
-- name: OCR_SERVICE_URL
-  value: "http://ocr-service:8083"
-- name: BUDGET_SERVICE_URL
-  value: "http://budget-service:8084"
-- name: NOTIFICATION_SERVICE_URL
-  value: "http://notification-service:8085"
 {{- end }}

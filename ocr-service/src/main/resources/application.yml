@@ -11,16 +11,12 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${KEYCLOAK_URL:http://localhost:8090}/realms/${KEYCLOAK_REALM:coinsight-realm}
+          issuer-uri: ${KEYCLOAK_URL:http://coinsight-platform-keycloak.coinsight.svc.cluster.local}/realms/${KEYCLOAK_REALM:coinsight-realm}
 
-# azure:
-#   form-recognizer:
-#     endpoint: ${AZURE_FORM_RECOGNIZER_ENDPOINT}
-#     api-key: ${AZURE_FORM_RECOGNIZER_API_KEY}
-
-# services:
-#   transaction-service:
-#     url: ${TRANSACTION_SERVICE_URL:http://localhost:8082}
+# Service URLs for communication
+services:
+  transaction-service:
+    url: ${TRANSACTION_SERVICE_URL:http://transaction-service.coinsight.svc.cluster.local:8082}
 
 resilience4j:
   circuitbreaker:
