@@ -65,6 +65,9 @@ spec:
         # Spring profile
         - name: SPRING_PROFILES_ACTIVE
           value: "kubernetes"
+        # Spring configuration location
+        - name: SPRING_CONFIG_LOCATION
+          value: "classpath:/application.yml,file:/app/config/application.yml,file:/app/config/{{ .serviceName }}.yml"
         
         # Database configuration from ConfigMaps and Secrets
         {{- if .config.database }}
@@ -244,6 +247,14 @@ spec:
           timeoutSeconds: 5
         resources:
 {{- toYaml .config.resources | nindent 10 }}
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/config
+          readOnly: true
+      volumes:
+      - name: config-volume
+        configMap:
+          name: config-repo
 
 {{- end }}
 
