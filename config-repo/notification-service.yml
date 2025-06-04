@@ -33,7 +33,7 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
   mail:
-    host: ${MAIL_HOST:mailhog}
+    host: ${MAIL_HOST:coinsight-platform-mailhog.coinsight.svc.cluster.local}
     port: ${MAIL_PORT:1025}
     username: ${MAIL_USERNAME:}
     password: ${MAIL_PASSWORD:}
@@ -63,9 +63,9 @@ keycloak:
 # Service endpoints
 services:
   auth-service:
-    url: ${AUTH_SERVICE_URL:http://auth-service.coinsight.svc.cluster.local:8081}
+    url: ${AUTH_SERVICE_URL:http://coinsight-service-auth-service.coinsight.svc.cluster.local:8081}
   budget-service:
-    url: ${BUDGET_SERVICE_URL:http://budget-service.coinsight.svc.cluster.local:8084}
+    url: ${BUDGET_SERVICE_URL:http://coinsight-service-budget-service.coinsight.svc.cluster.local:8084}
 
 # Logging configuration
 logging:
