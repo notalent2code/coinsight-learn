@@ -32,9 +32,28 @@ public class KafkaConfig {
     config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
     config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
     config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-    // Add retry and backoff settings
-    config.put(ProducerConfig.RETRIES_CONFIG, 3);
+    
+    // Enhanced retry and error handling settings
+    config.put(ProducerConfig.RETRIES_CONFIG, Integer.MAX_VALUE); // Retry indefinitely
     config.put(ProducerConfig.RETRY_BACKOFF_MS_CONFIG, 1000);
+    config.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, 30000); // 30 seconds
+    config.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 120000); // 2 minutes
+    config.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, 60000); // 1 minute
+    
+    // Enable idempotence to prevent duplicate messages
+    config.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
+    config.put(ProducerConfig.ACKS_CONFIG, "all"); // Wait for all replicas
+    config.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 5);
+    
+    // Metadata refresh settings to handle leader changes
+    config.put(ProducerConfig.RECONNECT_BACKOFF_MS_CONFIG, 50);
+    config.put(ProducerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, 1000);
+    
+    // Buffer settings
+    config.put(ProducerConfig.BUFFER_MEMORY_CONFIG, 33554432); // 32MB
+    config.put(ProducerConfig.BATCH_SIZE_CONFIG, 16384);
+    config.put(ProducerConfig.LINGER_MS_CONFIG, 5);
+    
     return new DefaultKafkaProducerFactory<>(config);
   }
 

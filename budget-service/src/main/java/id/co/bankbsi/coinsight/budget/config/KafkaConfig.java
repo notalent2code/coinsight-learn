@@ -54,10 +54,34 @@ public class KafkaConfig {
     props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
     props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "id.co.bankbsi.coinsight.budget.event.TransactionCreatedEvent");
     
-    // Fix offset management
-    props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"); // Change from latest
+    // Enhanced timeout and session management
+    props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
     props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false); // Manual commit for better control
     props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 1000);
+    
+    // Timeout configurations to prevent TimeoutException
+    props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 30000); // 30 seconds
+    props.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 10000); // 10 seconds
+    props.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, 300000); // 5 minutes
+    props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 500);
+    
+    // Connection and request timeouts
+    props.put(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG, 40000); // 40 seconds
+    props.put(ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, 60000); // 1 minute
+    props.put(ConsumerConfig.CONNECTIONS_MAX_IDLE_MS_CONFIG, 540000); // 9 minutes
+    
+    // Retry and backoff settings
+    props.put(ConsumerConfig.RETRY_BACKOFF_MS_CONFIG, 1000);
+    props.put(ConsumerConfig.RECONNECT_BACKOFF_MS_CONFIG, 1000);
+    props.put(ConsumerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, 10000);
+    
+    // Metadata settings to handle broker issues
+    props.put("metadata.max.age.ms", 300000); // 5 minutes
+    props.put(ConsumerConfig.ALLOW_AUTO_CREATE_TOPICS_CONFIG, true);
+    
+    // Fetch settings
+    props.put(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, 1);
+    props.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, 500);
     
     return new DefaultKafkaConsumerFactory<>(props);
   }
@@ -78,6 +102,26 @@ public class KafkaConfig {
     props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
     props.put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 1000);
     
+    // Same timeout configurations as transactionCreatedConsumerFactory
+    props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 30000);
+    props.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 10000);
+    props.put(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, 300000);
+    props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 500);
+    
+    props.put(ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG, 40000);
+    props.put(ConsumerConfig.DEFAULT_API_TIMEOUT_MS_CONFIG, 60000);
+    props.put(ConsumerConfig.CONNECTIONS_MAX_IDLE_MS_CONFIG, 540000);
+    
+    props.put(ConsumerConfig.RETRY_BACKOFF_MS_CONFIG, 1000);
+    props.put(ConsumerConfig.RECONNECT_BACKOFF_MS_CONFIG, 1000);
+    props.put(ConsumerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, 10000);
+    
+    props.put("metadata.max.age.ms", 300000);
+    props.put(ConsumerConfig.ALLOW_AUTO_CREATE_TOPICS_CONFIG, true);
+    
+    props.put(ConsumerConfig.FETCH_MIN_BYTES_CONFIG, 1);
+    props.put(ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG, 500);
+    
     return new DefaultKafkaConsumerFactory<>(props);
   }
 
@@ -87,7 +131,20 @@ public class KafkaConfig {
         new ConcurrentKafkaListenerContainerFactory<>();
     factory.setConsumerFactory(transactionCreatedConsumerFactory());
     factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
-    factory.setCommonErrorHandler(new org.springframework.kafka.listener.DefaultErrorHandler());
+    
+    // Enhanced error handling for TimeoutException and other issues
+    org.springframework.kafka.listener.DefaultErrorHandler errorHandler = 
+        new org.springframework.kafka.listener.DefaultErrorHandler();
+    errorHandler.addNotRetryableExceptions(
+        org.apache.kafka.common.errors.TimeoutException.class,
+        org.apache.kafka.common.errors.NotLeaderOrFollowerException.class
+    );
+    factory.setCommonErrorHandler(errorHandler);
+    
+    // Container properties for better reliability
+    factory.getContainerProperties().setPollTimeout(3000);
+    factory.getContainerProperties().setMissingTopicsFatal(false);
+    factory.setConcurrency(1); // Start with single thread per partition
     
     return factory;
   }
@@ -98,7 +155,20 @@ public class KafkaConfig {
         new ConcurrentKafkaListenerContainerFactory<>();
     factory.setConsumerFactory(transactionDeletedConsumerFactory());
     factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
-    factory.setCommonErrorHandler(new org.springframework.kafka.listener.DefaultErrorHandler());
+    
+    // Enhanced error handling for TimeoutException and other issues
+    org.springframework.kafka.listener.DefaultErrorHandler errorHandler = 
+        new org.springframework.kafka.listener.DefaultErrorHandler();
+    errorHandler.addNotRetryableExceptions(
+        org.apache.kafka.common.errors.TimeoutException.class,
+        org.apache.kafka.common.errors.NotLeaderOrFollowerException.class
+    );
+    factory.setCommonErrorHandler(errorHandler);
+    
+    // Container properties for better reliability
+    factory.getContainerProperties().setPollTimeout(3000);
+    factory.getContainerProperties().setMissingTopicsFatal(false);
+    factory.setConcurrency(1); // Start with single thread per partition
     
     return factory;
   }

@@ -30,6 +30,13 @@ if ! kubectl cluster-info &> /dev/null; then
     exit 1
 fi
 
+# Check for required dependencies
+if ! command -v lsof &> /dev/null; then
+    echo "❌ lsof is required but not installed."
+    echo "💡 Install with: apt-get install lsof (Ubuntu) or yum install lsof (CentOS/RHEL)"
+    exit 1
+fi
+
 # Check if namespace exists
 if ! kubectl get namespace coinsight &> /dev/null; then
     echo "📁 Creating coinsight namespace..."
@@ -127,8 +134,39 @@ initialize_keycloak_realm() {
     echo "⏳ Waiting for Keycloak pod to be ready..."
     kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=keycloak --timeout=120s
     
-    # Run the Keycloak initialization script (it will handle connectivity checks)
+    # Set up port-forward for Keycloak access
+    echo "🔌 Setting up port-forward for Keycloak..."
+    local port_forward_pid=""
+    
+    # Kill any existing port-forward on port 8090
+    if lsof -ti:8090 >/dev/null 2>&1; then
+        echo "⚠️  Port 8090 is already in use, killing existing processes..."
+        kill -9 $(lsof -ti:8090) 2>/dev/null || true
+        sleep 2
+    fi
+    
+    # Start port-forward in background
+    kubectl port-forward svc/coinsight-platform-keycloak 8090:80 -n coinsight >/dev/null 2>&1 &
+    port_forward_pid=$!
+    
+    # Wait a moment for port-forward to establish
+    echo "⏳ Waiting for port-forward to establish..."
+    sleep 5
+    
+    # Verify port-forward is working
+    if curl -sf http://localhost:8090/realms/master >/dev/null 2>&1; then
+        echo "✅ Port-forward established successfully"
+    else
+        echo "❌ Port-forward failed to establish"
+        if [ -n "$port_forward_pid" ]; then
+            kill $port_forward_pid 2>/dev/null || true
+        fi
+        return 1
+    fi
+    
+    # Run the Keycloak initialization script
     echo "🚀 Executing Keycloak realm initialization..."
+    local init_result=0
     if [ -f "k8s/scripts/init-keycloak-realm.sh" ]; then
         chmod +x k8s/scripts/init-keycloak-realm.sh
         
@@ -137,14 +175,31 @@ initialize_keycloak_realm() {
             echo "✅ Keycloak realm initialization completed successfully!"
         else
             echo "❌ Keycloak realm initialization failed"
-            return 1
+            init_result=1
         fi
     else
         echo "❌ Keycloak initialization script not found at k8s/scripts/init-keycloak-realm.sh"
-        return 1
+        init_result=1
     fi
     
-    echo "✅ Keycloak realm initialization completed!"
+    # Clean up port-forward
+    echo "🔌 Cleaning up port-forward..."
+    if [ -n "$port_forward_pid" ]; then
+        kill $port_forward_pid 2>/dev/null || true
+        wait $port_forward_pid 2>/dev/null || true
+    fi
+    
+    # Also clean up any remaining processes on port 8090
+    if lsof -ti:8090 >/dev/null 2>&1; then
+        kill -9 $(lsof -ti:8090) 2>/dev/null || true
+    fi
+    
+    if [ $init_result -eq 0 ]; then
+        echo "✅ Keycloak realm initialization completed!"
+    else
+        echo "❌ Keycloak realm initialization failed"
+        return 1
+    fi
     echo ""
 }
 

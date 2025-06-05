@@ -31,7 +31,7 @@ keycloak:
   realm: ${KEYCLOAK_REALM:coinsight-realm}
   resource: auth-service  # This should match the client ID in Keycloak
   credentials:
-    secret: ${KEYCLOAK_CLIENT_SECRET:OgRK7as6bjDxNKT5qpAbAtaMKsg7c1bh}  # Use the secret from Keycloak
+    secret: ${KEYCLOAK_CLIENT_SECRET}  # Use the secret from Keycloak
   public-client: false
   use-resource-role-mappings: true
   bearer-only: false

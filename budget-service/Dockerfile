@@ -37,7 +37,7 @@ RUN --mount=type=cache,target=/root/.m2 \
     mvn clean package -pl budget-service -am -DskipTests -B
 
 # Runtime stage - minimal, secure image
-FROM amazoncorretto:17-alpine3.19
+FROM eclipse-temurin:17-jre-alpine
 
 WORKDIR /app
 

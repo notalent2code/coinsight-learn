@@ -35,6 +35,10 @@ nodes:
   - containerPort: 30300
     hostPort: 3000
     protocol: TCP
+  # MailHog web interface
+  - containerPort: 31025
+    hostPort: 31025
+    protocol: TCP
 - role: worker
   labels:
     tier: services
