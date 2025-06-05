@@ -6,7 +6,7 @@
 set -e
 
 # Configuration
-KEYCLOAK_URL="http://localhost:8090"  # Port-forwarded Keycloak
+KEYCLOAK_URL="http://localhost:8090"  # Kind port mapping
 KEYCLOAK_ADMIN_USER="admin"
 KEYCLOAK_ADMIN_PASSWORD="admin"
 REALM_NAME="coinsight-realm"

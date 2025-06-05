@@ -40,20 +40,20 @@ spec:
       labels:
         {{- include "microservice.selectorLabels" . | nindent 8 }}
     spec:
-      {{- if .config.database }}
-      initContainers:
-      - name: wait-for-database
-        image: postgres:15-alpine
-        command: ['sh', '-c']
-        args:
-        - |
-          echo "Waiting for database to be ready..."
-          until pg_isready -h {{ .config.database.host }}.coinsight.svc.cluster.local -p 5432; do
-            echo "Database not ready, waiting..."
-            sleep 5
-          done
-          echo "Database is ready!"
-      {{- end }}
+      # {{- if .config.database }}
+      # initContainers:
+      # - name: wait-for-database
+      #   image: postgres:15-alpine
+      #   command: ['sh', '-c']
+      #   args:
+      #   - |
+      #     echo "Waiting for database to be ready..."
+      #     until pg_isready -h {{ .config.database.host }}.coinsight.svc.cluster.local -p 5432; do
+      #       echo "Database not ready, waiting..."
+      #       sleep 5
+      #     done
+      #     echo "Database is ready!"
+      # {{- end }}
       containers:
       - name: {{ .serviceName }}
         image: "{{ .config.image.repository }}:{{ .config.image.tag }}"
@@ -104,6 +104,18 @@ spec:
             secretKeyRef:
               name: keycloak-secrets
               key: auth-service-secret
+        {{- else if eq .serviceName "transaction-service" }}
+        - name: KEYCLOAK_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-secrets
+              key: transaction-service-secret
+        {{- else if eq .serviceName "ocr-service" }}
+        - name: KEYCLOAK_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-secrets
+              key: ocr-service-secret
         {{- else if eq .serviceName "budget-service" }}
         - name: KEYCLOAK_CLIENT_SECRET
           valueFrom:

@@ -117,6 +117,40 @@ echo "   ➤ Keycloak status:"
 kubectl get pods -l app.kubernetes.io/name=keycloak
 echo ""
 
+# Initialize Keycloak realm after infrastructure is ready
+initialize_keycloak_realm() {
+    echo "🔑 Initializing Keycloak realm and clients..."
+    echo "   This step configures OAuth2 clients for all microservices"
+    echo ""
+    
+    # Check if Keycloak pod is ready
+    echo "⏳ Waiting for Keycloak pod to be ready..."
+    kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=keycloak --timeout=120s
+    
+    # Run the Keycloak initialization script (it will handle connectivity checks)
+    echo "🚀 Executing Keycloak realm initialization..."
+    if [ -f "k8s/scripts/init-keycloak-realm.sh" ]; then
+        chmod +x k8s/scripts/init-keycloak-realm.sh
+        
+        # Run with error handling
+        if DEBUG_SHOW_SECRETS=false ./k8s/scripts/init-keycloak-realm.sh; then
+            echo "✅ Keycloak realm initialization completed successfully!"
+        else
+            echo "❌ Keycloak realm initialization failed"
+            return 1
+        fi
+    else
+        echo "❌ Keycloak initialization script not found at k8s/scripts/init-keycloak-realm.sh"
+        return 1
+    fi
+    
+    echo "✅ Keycloak realm initialization completed!"
+    echo ""
+}
+
+# Call the initialization function
+initialize_keycloak_realm
+
 echo "2️⃣ Deploying all microservices..."
 echo "   ➤ Enabling: auth-service (port 8081)"
 echo "   ➤ Enabling: transaction-service (port 8082)"
@@ -157,8 +191,8 @@ echo ""
 
 # Show progress while waiting
 echo "🔄 Monitoring startup progress..."
-for i in {1..10}; do
-    echo "   ⏱️  Checking startup progress (${i}/10)..."
+for i in {1..3}; do
+    echo "   ⏱️  Checking startup progress (${i}/3)..."
     kubectl get pods --no-headers | grep -E "(auth-service|transaction-service|ocr-service|budget-service|notification-service|gateway-service)" | while read line; do
         name=$(echo $line | awk '{print $1}')
         status=$(echo $line | awk '{print $3}')
@@ -166,10 +200,10 @@ for i in {1..10}; do
         echo "      ➤ $name: $status ($ready)"
     done
     echo ""
-    sleep 30
+    sleep 20
 done
 
-kubectl wait --for=condition=ready pod --all --timeout=300s --ignore-not-found=true
+kubectl wait --for=condition=ready pod --all --timeout=300s
 
 echo "🔄 Restarting deployments to ensure latest image is used..."
 kubectl rollout restart deployment -n coinsight
@@ -200,6 +234,8 @@ echo "  kubectl logs job/budget-db-init -n coinsight"
 echo "  kubectl logs job/notification-db-init -n coinsight"
 echo ""
 echo "🎯 Next steps:"
-echo "  1. Initialize Keycloak realm: k8s/scripts/init-keycloak-realm.sh"
-echo "  2. Test the gateway: curl http://localhost:30080/actuator/health"
-echo "  3. Monitor services: kubectl get pods -w"
+echo "  1. Test the gateway: curl http://localhost:30080/actuator/health"
+echo "  2. Monitor services: kubectl get pods -w"
+echo "  3. Check Keycloak admin console: http://localhost:8090 (admin/admin)"
+echo ""
+echo "📧 MailHog (for testing emails): http://localhost:31025"

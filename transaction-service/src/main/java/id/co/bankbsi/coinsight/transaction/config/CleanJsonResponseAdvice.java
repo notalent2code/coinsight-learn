@@ -21,15 +21,11 @@ public class CleanJsonResponseAdvice implements ResponseBodyAdvice<Object> {
   @Override
   public boolean supports(
       MethodParameter returnType, Class<? extends HttpMessageConverter<?>> converterType) {
-    // Skip Spring Boot internal classes that don't support deserialization
+    // Avoid advice on actuator/health-related classes
     String className = returnType.getParameterType().getName();
-    if (className.startsWith("org.springframework.boot.actuator") ||
-        className.startsWith("org.springframework.boot.autoconfigure") ||
-        className.contains("Health")) {
-      return false;
-    }
-
-    return true;
+    return !className.startsWith("org.springframework.boot.actuate")
+        && !className.startsWith("org.springframework.boot.autoconfigure")
+        && !className.contains("Health");
   }
 
   @Override
@@ -40,33 +36,21 @@ public class CleanJsonResponseAdvice implements ResponseBodyAdvice<Object> {
       Class<? extends HttpMessageConverter<?>> selectedConverterType,
       ServerHttpRequest request,
       ServerHttpResponse response) {
-    if (body == null) {
-      return null;
-    }
 
-    // Skip processing for Spring Boot internal classes
-    String className = body.getClass().getName();
-    if (className.startsWith("org.springframework.boot.actuator") ||
-        className.startsWith("org.springframework.boot.autoconfigure") ||
-        className.contains("Health") ||
-        className.contains("CompositeHealth")) {
-      return body;
-    }
+    if (body == null) return null;
 
-    // Skip processing for actuator endpoints
-    String requestPath = request.getURI().getPath();
-    if (requestPath.startsWith("/actuator")) {
+    // 💡 Skip actuator endpoints entirely
+    String path = request.getURI().getPath();
+    if (path.startsWith("/actuator")) {
       return body;
     }
 
     try {
-      // Convert the object to clean JSON and back to remove any Redis serialization
-      // artifacts
-      // This is a bit of a hack but works reliably
+      // Clean serialization artifacts
       String json = objectMapper.writeValueAsString(body);
       return objectMapper.readValue(json, body.getClass());
     } catch (Exception e) {
-      log.warn("Failed to clean JSON response for {}: {}", body.getClass().getSimpleName(), e.getMessage());
+      log.warn("❗ Failed to clean JSON response for {}: {}", body.getClass().getSimpleName(), e.getMessage());
       return body;
     }
   }

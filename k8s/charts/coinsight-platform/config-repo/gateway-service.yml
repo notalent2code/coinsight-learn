@@ -44,23 +44,22 @@ spring:
         #   filters:
         #     - TokenRelay
 
-        # - id: auth-service
-        #   uri: ${AUTH_SERVICE_URL:http://localhost:8081}
-        #   predicates:
-        #     - Path=/api/auth/**
-        #   filters:
-        #     - StripPrefix=2
-        #     - TokenRelay
-        #     - name: CircuitBreaker
-        #       args:
-        #         name: authServiceCircuitBreaker
-        #         fallbackUri: forward:/fallback/auth
-        #     - name: RequestRateLimiter
-        #       args:
-        #         redis-rate-limiter.replenishRate: 10
-        #         redis-rate-limiter.burstCapacity: 20
-        #         redis-rate-limiter.requestedTokens: 1
-        #         key-resolver: "#{@userKeyResolver}"
+        - id: auth-service
+          uri: ${AUTH_SERVICE_URL:http://auth-service.coinsight.svc.cluster.local:8081}
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - TokenRelay
+            - name: CircuitBreaker
+              args:
+                name: authServiceCircuitBreaker
+                fallbackUri: forward:/fallback/auth
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@userKeyResolver}"
 
         - id: transaction-service
           uri: ${TRANSACTION_SERVICE_URL:http://transaction-service.coinsight.svc.cluster.local:8082}
