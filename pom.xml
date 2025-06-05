@@ -19,7 +19,6 @@
     <description>Finance Tracking Microservices Application</description>
     
     <modules>
-        <module>config-server</module>
         <module>gateway-service</module>
         <module>auth-service</module>
         <module>transaction-service</module>

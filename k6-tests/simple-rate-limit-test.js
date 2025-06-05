@@ -6,7 +6,7 @@ export const options = {
   iterations: 50, // 50 requests total
 };
 
-const BASE_URL = 'http://localhost:8080';
+const BASE_URL = 'http://coinsight.local';
 
 export default function () {
   // Test public endpoint with IP-based rate limiting (5 req/sec limit)
