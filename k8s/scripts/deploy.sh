@@ -51,6 +51,20 @@ kubectl config set-context --current --namespace=coinsight
 echo "🧹 Cleaning up any existing database init jobs..."
 kubectl delete jobs -l "helm.sh/hook" -n coinsight --ignore-not-found=true
 
+echo "📦 Checking Helm chart dependencies..."
+echo "   Verifying chart dependencies are available..."
+cd k8s/charts/coinsight-platform
+if [ ! -d "charts" ] || [ -z "$(ls -A charts/*.tgz 2>/dev/null)" ]; then
+    echo "❌ Chart dependencies not found in charts/ directory"
+    echo "💡 Please ensure .tgz files are available in: $(pwd)/charts/"
+    echo "💡 Expected files: postgresql-*.tgz, redis-*.tgz, kafka-*.tgz, etc."
+    exit 1
+fi
+echo "✅ Chart dependencies found:"
+ls charts/*.tgz 2>/dev/null || true
+cd ../../..
+echo ""
+
 echo "📦 Deploying infrastructure dependencies first..."
 echo "   This includes PostgreSQL databases, Redis, Kafka, and Keycloak"
 echo ""
@@ -62,10 +76,12 @@ echo "   ➤ Deploying: Redis cluster"
 echo "   ➤ Deploying: Kafka with KRaft"
 echo "   ➤ Deploying: Keycloak identity server"
 echo "   ➤ Microservices are DISABLED in this step"
+echo "   ➤ Monitoring is DISABLED in this step"
+
 echo ""
 echo "🚀 Running Helm upgrade for infrastructure..."
 echo "   Command: helm upgrade --install coinsight-platform k8s/charts/coinsight-platform"
-echo "   Parameters: microservices disabled, wait enabled, timeout 300s"
+echo "   Parameters: microservices disabled and monitoring disabled, wait enabled, timeout 600s"
 echo ""
 
 helm upgrade --install coinsight-platform k8s/charts/coinsight-platform \
@@ -81,7 +97,7 @@ helm upgrade --install coinsight-platform k8s/charts/coinsight-platform \
     --set monitoring.grafana.enabled=false \
     --set monitoring.loki.enabled=false \
     --set monitoring.promtail.enabled=false \
-    --wait --timeout=300s
+    --wait --timeout=600s
 
 echo "✅ Infrastructure deployment completed!"
 echo ""
@@ -251,10 +267,12 @@ echo "   ➤ Enabling: ocr-service (port 8083)"
 echo "   ➤ Enabling: budget-service (port 8084)"
 echo "   ➤ Enabling: notification-service (port 8085)"
 echo "   ➤ Enabling: gateway-service (port 8080)"
+echo "   ➤ Monitoring components are DISABLED in this step"
 echo ""
 echo "🚀 Running Helm upgrade for microservices..."
 echo "   Command: helm upgrade --install coinsight-platform k8s/charts/coinsight-platform"
-echo "   Parameters: all microservices enabled, wait enabled, timeout 300s"
+echo "   Parameters: all microservices enabled, wait enabled, timeout 600s"
+echo "   Monitoring components will be disabled in this step"
 echo ""
 
 helm upgrade --install coinsight-platform k8s/charts/coinsight-platform \
@@ -270,7 +288,7 @@ helm upgrade --install coinsight-platform k8s/charts/coinsight-platform \
     --set monitoring.grafana.enabled=false \
     --set monitoring.loki.enabled=false \
     --set monitoring.promtail.enabled=false \
-    --wait --timeout=300s
+    --wait --timeout=600s
 
 echo "✅ Microservices deployment completed!"
 echo ""
@@ -301,7 +319,7 @@ for i in {1..3}; do
     sleep 20
 done
 
-kubectl wait --for=condition=ready pod --all --timeout=300s
+kubectl wait --for=condition=ready pod --all --timeout=600s
 
 echo "🔄 Restarting deployments to ensure latest image is used..."
 kubectl rollout restart deployment -n coinsight
@@ -336,5 +354,5 @@ echo "  1. Test the gateway: curl http://localhost:30080/actuator/health"
 echo "  2. Monitor services: kubectl get pods -w"
 echo "  3. Check Keycloak admin console: http://localhost:8090 (admin/admin)"
 echo "  4. 📊 Deploy monitoring stack: ./k8s/scripts/deploy-monitoring.sh"
-echo ""
-echo "📧 MailHog (for testing emails): http://localhost:31025"
+
+echo ""echo "📧 MailHog (for testing emails): http://localhost:31025"

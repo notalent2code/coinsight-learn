@@ -525,7 +525,7 @@ main() {
     echo "🔐 Secrets updated in Kubernetes secret 'keycloak-secrets'"
     echo "🌍 Keycloak admin: $KEYCLOAK_URL/admin (admin/admin)"
     echo ""
-    echo "🔍 To verify: kubectl get secret keycloak-secrets -n coinsight -o jsonpath='{.data}' | jq -r 'to_entries[] | "\(.key): \(.value | @base64d)"'"
+    echo "🔍 To verify: kubectl get secret keycloak-secrets -n coinsight -o jsonpath='{.data}' | jq -r 'to_entries[] | \"\(.key): \(.value | @base64d)\"'"
 }
 
 # Run main function

@@ -37,12 +37,12 @@ spring:
           predicates:
             - Path=/test/**
 
-        # - id: test-token-relay
-        #   uri: ${AUTH_SERVICE_URL:http://localhost:8081}
-        #   predicates:
-        #     - Path=/api/relay-test/**
-        #   filters:
-        #     - TokenRelay
+        - id: test-token-relay
+          uri: ${AUTH_SERVICE_URL:http://auth-service.coinsight.svc.cluster.local:8081}
+          predicates:
+            - Path=/api/relay-test/**
+          filters:
+            - TokenRelay
 
         - id: auth-service
           uri: ${AUTH_SERVICE_URL:http://auth-service.coinsight.svc.cluster.local:8081}

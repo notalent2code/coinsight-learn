@@ -71,9 +71,9 @@ helm upgrade --install coinsight-platform k8s/charts/coinsight-platform \
     --wait --timeout=600s
 
 echo "⏳ Waiting for monitoring services to be ready..."
-kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=prometheus --timeout=300s -n coinsight || echo "⚠️  Prometheus may still be starting..."
-kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=grafana --timeout=300s -n coinsight || echo "⚠️  Grafana may still be starting..."
-kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=loki --timeout=300s -n coinsight || echo "⚠️  Loki may still be starting..."
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=prometheus --timeout=600s -n coinsight || echo "⚠️  Prometheus may still be starting..."
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=grafana --timeout=600s -n coinsight || echo "⚠️  Grafana may still be starting..."
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=loki --timeout=600s -n coinsight || echo "⚠️  Loki may still be starting..."
 
 echo ""
 echo "📊 Monitoring stack status:"
