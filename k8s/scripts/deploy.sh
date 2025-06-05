@@ -76,6 +76,11 @@ helm upgrade --install coinsight-platform k8s/charts/coinsight-platform \
     --set microservices.budgetService.enabled=false \
     --set microservices.notificationService.enabled=false \
     --set microservices.gatewayService.enabled=false \
+    --set monitoring.enabled=false \
+    --set monitoring.prometheus.enabled=false \
+    --set monitoring.grafana.enabled=false \
+    --set monitoring.loki.enabled=false \
+    --set monitoring.promtail.enabled=false \
     --wait --timeout=300s
 
 echo "✅ Infrastructure deployment completed!"
@@ -94,25 +99,58 @@ for i in {1..12}; do
     kubectl get pods | grep postgres | grep -v NAME
     ready_count=$(kubectl get pods --no-headers | grep postgres | grep "1/1.*Running" | wc -l)
     total_count=$(kubectl get pods --no-headers | grep postgres | wc -l)
-    echo "   📊 Ready: ${ready_count}/${total_count} PostgreSQL databases"
-    
-    if [ "$ready_count" -eq "$total_count" ] && [ "$total_count" -gt 0 ]; then
-        echo "   ✅ All databases are ready!"
+    if [ $ready_count -eq $total_count ] && [ $total_count -gt 0 ]; then
+        echo "✅ All $total_count PostgreSQL databases are ready!"
         break
     fi
-    
-    if [ $i -lt 12 ]; then
-        echo "   ⏳ Waiting 15s before next check..."
-        sleep 15
-    fi
+    sleep 15
 done
 
 kubectl wait --for=condition=ready pod -l "app.kubernetes.io/name" --timeout=60s | grep postgres || true
 
-echo "✅ All PostgreSQL databases are ready!"
 echo ""
-echo "📊 Database pod status:"
-kubectl get pods | grep postgres
+echo "🎯 Database Connection Information for DBeaver:"
+echo "================================================"
+echo ""
+echo "📊 Auth Service Database:"
+echo "   Host: localhost"
+echo "   Port: 5001"
+echo "   Database: auth_service"
+echo "   Username: postgres"
+echo "   Password: postgres"
+echo ""
+echo "💳 Transaction Service Database:"
+echo "   Host: localhost"
+echo "   Port: 5002"
+echo "   Database: transaction_service"
+echo "   Username: postgres"
+echo "   Password: postgres"
+echo ""
+echo "💰 Budget Service Database:"
+echo "   Host: localhost"
+echo "   Port: 5003"
+echo "   Database: budget_service"
+echo "   Username: postgres"
+echo "   Password: postgres"
+echo ""
+echo "📧 Notification Service Database:"
+echo "   Host: localhost"
+echo "   Port: 5004"
+echo "   Database: notification_service"
+echo "   Username: postgres"
+echo "   Password: postgres"
+echo ""
+echo "🔐 Keycloak Database:"
+echo "   Host: localhost"
+echo "   Port: 5005"
+echo "   Database: keycloak"
+echo "   Username: postgres"
+echo "   Password: postgres"
+echo ""
+echo "📧 MailHog (for testing emails): http://localhost:31025"
+echo ""
+echo "🚀 All databases are accessible from your host machine!"
+echo "   Use the connection details above in DBeaver or any PostgreSQL client."
 echo ""
 
 echo "🔍 Checking infrastructure health before deploying microservices..."
@@ -227,6 +265,11 @@ helm upgrade --install coinsight-platform k8s/charts/coinsight-platform \
     --set microservices.budgetService.enabled=true \
     --set microservices.notificationService.enabled=true \
     --set microservices.gatewayService.enabled=true \
+    --set monitoring.enabled=false \
+    --set monitoring.prometheus.enabled=false \
+    --set monitoring.grafana.enabled=false \
+    --set monitoring.loki.enabled=false \
+    --set monitoring.promtail.enabled=false \
     --wait --timeout=300s
 
 echo "✅ Microservices deployment completed!"
@@ -292,5 +335,6 @@ echo "🎯 Next steps:"
 echo "  1. Test the gateway: curl http://localhost:30080/actuator/health"
 echo "  2. Monitor services: kubectl get pods -w"
 echo "  3. Check Keycloak admin console: http://localhost:8090 (admin/admin)"
+echo "  4. 📊 Deploy monitoring stack: ./k8s/scripts/deploy-monitoring.sh"
 echo ""
 echo "📧 MailHog (for testing emails): http://localhost:31025"

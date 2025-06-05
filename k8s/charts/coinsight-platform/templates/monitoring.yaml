@@ -1,0 +1,91 @@
+{{- if .Values.monitoring.enabled }}
+---
+# ServiceMonitor for Microservices
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: coinsight-microservices
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "coinsight-platform.labels" . | nindent 4 }}
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: coinsight-platform
+  endpoints:
+  - port: http
+    path: /actuator/prometheus
+    interval: 30s
+    scrapeTimeout: 10s
+
+---
+# ServiceMonitor for Infrastructure Components
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: coinsight-infrastructure
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "coinsight-platform.labels" . | nindent 4 }}
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  endpoints:
+  - port: http
+    interval: 30s
+    scrapeTimeout: 10s
+
+---
+# Grafana Dashboard ConfigMap for Coinsight
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coinsight-dashboard
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "coinsight-platform.labels" . | nindent 4 }}
+    grafana_dashboard: "1"
+data:
+  coinsight-overview.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Coinsight Platform Overview",
+        "tags": ["coinsight", "microservices"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Service Availability",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "up{job=~\".*coinsight.*\"}",
+                "legendFormat": "{{instance}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "HTTP Request Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(http_server_requests_seconds_count[5m])",
+                "legendFormat": "{{service}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          }
+        ],
+        "time": {"from": "now-1h", "to": "now"},
+        "refresh": "30s"
+      }
+    }
+
+{{- end }}

@@ -72,3 +72,36 @@ dependencies:
     version: "~21.4.0"
     repository: "https://charts.bitnami.com/bitnami"
     condition: keycloak.enabled
+
+  # Monitoring and Observability Stack
+  - name: prometheus
+    version: "~25.11.0"
+    repository: "https://prometheus-community.github.io/helm-charts"
+    condition: monitoring.prometheus.enabled
+    alias: prometheus
+    import-values:
+      - default
+    
+  - name: grafana
+    version: "~7.3.0"
+    repository: "https://grafana.github.io/helm-charts"
+    condition: monitoring.grafana.enabled
+    alias: grafana
+    import-values:
+      - default
+    
+  - name: loki
+    version: "~5.42.0"
+    repository: "https://grafana.github.io/helm-charts"
+    condition: monitoring.loki.enabled
+    alias: loki
+    import-values:
+      - default
+    
+  - name: promtail
+    version: "~6.15.0"
+    repository: "https://grafana.github.io/helm-charts"
+    condition: monitoring.promtail.enabled
+    alias: promtail
+    import-values:
+      - default

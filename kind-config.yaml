@@ -19,7 +19,7 @@ nodes:
   - containerPort: 443
     hostPort: 8443
     protocol: TCP
-  # Gateway Service NodePort
+  # Application services
   - containerPort: 30080
     hostPort: 30080
     protocol: TCP
@@ -35,10 +35,34 @@ nodes:
   - containerPort: 30300
     hostPort: 3000
     protocol: TCP
+  # Loki (for log querying)
+  - containerPort: 30310
+    hostPort: 3100
+    protocol: TCP
+  # Additional monitoring ports
+  - containerPort: 30320
+    hostPort: 9093
+    protocol: TCP
   # MailHog web interface
   - containerPort: 31025
     hostPort: 31025
     protocol: TCP
+  # PostgreSQL Database Ports
+  - containerPort: 30001
+    hostPort: 5001
+    protocol: TCP  # Auth Service DB
+  - containerPort: 30002
+    hostPort: 5002
+    protocol: TCP  # Transaction Service DB
+  - containerPort: 30003
+    hostPort: 5003
+    protocol: TCP  # Budget Service DB
+  - containerPort: 30004
+    hostPort: 5004
+    protocol: TCP  # Notification Service DB
+  - containerPort: 30005
+    hostPort: 5005
+    protocol: TCP  # Keycloak DB
 - role: worker
   labels:
     tier: services

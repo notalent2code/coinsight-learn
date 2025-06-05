@@ -10,7 +10,7 @@ WORKDIR /app
 COPY pom.xml .
 
 # Create empty directories for all modules to satisfy Maven structure
-RUN mkdir -p common gateway-service auth-service transaction-service ocr-service budget-service notification-service config-server
+RUN mkdir -p common gateway-service auth-service transaction-service ocr-service budget-service notification-service 
 
 # Copy all module POM files
 COPY common/pom.xml ./common/
@@ -20,7 +20,7 @@ COPY transaction-service/pom.xml ./transaction-service/
 COPY ocr-service/pom.xml ./ocr-service/
 COPY budget-service/pom.xml ./budget-service/
 COPY notification-service/pom.xml ./notification-service/
-COPY config-server/pom.xml ./config-server/
+
 
 # Download dependencies with BuildKit cache mount
 # This layer is cached unless POM files change

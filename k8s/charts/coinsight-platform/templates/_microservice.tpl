@@ -30,6 +30,8 @@ metadata:
   namespace: {{ .root.Release.Namespace }}
   labels:
     {{- include "microservice.labels" . | nindent 4 }}
+    app.kubernetes.io/part-of: coinsight-platform
+    prometheus.io/scrape: "true"
 spec:
   replicas: 1
   selector:
@@ -39,6 +41,11 @@ spec:
     metadata:
       labels:
         {{- include "microservice.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/part-of: coinsight-platform
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "{{ .config.service.port }}"
+        prometheus.io/path: "/actuator/prometheus"
     spec:
       # {{- if .config.database }}
       # initContainers:
@@ -240,6 +247,12 @@ spec:
               key: mail-password
         {{- end }}
         
+        # Add monitoring configuration
+        - name: MANAGEMENT_METRICS_EXPORT_PROMETHEUS_ENABLED
+          value: "true"
+        - name: MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE
+          value: "health,info,metrics,prometheus,loggers"
+        
         {{- with .config.env }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -282,6 +295,11 @@ metadata:
   namespace: {{ .root.Release.Namespace }}
   labels:
     {{- include "microservice.labels" . | nindent 4 }}
+    app.kubernetes.io/part-of: coinsight-platform
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "{{ .config.service.port }}"
+    prometheus.io/path: "/actuator/prometheus"
 spec:
   {{- if .config.service.type }}
   type: {{ .config.service.type }}
