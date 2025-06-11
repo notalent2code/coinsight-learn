@@ -9,7 +9,7 @@ set -e
 KEYCLOAK_URL="http://34.101.169.95"  # Your GKE external IP
 KEYCLOAK_ADMIN_USER="admin"
 KEYCLOAK_ADMIN_PASSWORD="admin"
-REALM_NAME="coinsight"  # Updated to match your setup
+REALM_NAME="coinsight-realm"  # Updated to match your setup
 K8S_NAMESPACE="coinsight"
 
 # Security setting - set to "true" only for debugging (NOT in production!)
