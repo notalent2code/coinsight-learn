@@ -137,8 +137,6 @@ create_gke_cluster() {
         --enable-ip-alias \
         --network=default \
         --subnetwork=default \
-        --enable-cloud-logging \
-        --enable-cloud-monitoring \
         --preemptible  # Cost optimization: ~70% cheaper
     
     # Get cluster credentials
