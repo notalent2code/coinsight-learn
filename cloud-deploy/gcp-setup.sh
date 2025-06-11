@@ -13,7 +13,7 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 # Configuration
-PROJECT_ID=""  # Will be set interactively
+PROJECT_ID="coinsight-462602"  # Hardcoded for faster deployment
 CLUSTER_NAME="coinsight-cluster"
 REGION="asia-southeast2"  # Jakarta, Indonesia
 ZONE="asia-southeast2-a"
@@ -59,16 +59,8 @@ check_prerequisites() {
 setup_gcp_project() {
     echo -e "${BLUE}🔧 Setting up GCP project...${NC}"
     
-    # Get project ID interactively if not set
-    if [ -z "$PROJECT_ID" ]; then
-        echo -e "${YELLOW}📝 Enter your GCP Project ID (create one at https://console.cloud.google.com):${NC}"
-        read -p "Project ID: " PROJECT_ID
-        
-        if [ -z "$PROJECT_ID" ]; then
-            echo -e "${RED}❌ Project ID is required${NC}"
-            exit 1
-        fi
-    fi
+    # Project ID is hardcoded for faster deployment
+    echo -e "${GREEN}📝 Using hardcoded project: $PROJECT_ID${NC}"
     
     # Set the project
     gcloud config set project $PROJECT_ID
