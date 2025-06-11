@@ -160,7 +160,7 @@ build_and_push_images() {
         # Build with Cloud Build (faster, uses Google's infrastructure)
         gcloud builds submit \
             --tag="${REGISTRY_URL}/${service}:latest" \
-            --file="${service}/Dockerfile" \
+            --dockerfile="${service}/Dockerfile" \
             --timeout=20m \
             .
         
