@@ -1,0 +1,60 @@
+# Cloud Build compatible Dockerfile for ocr-service
+FROM maven:3.9-amazoncorretto-17 AS builder
+
+WORKDIR /app
+
+# Copy the parent POM first
+COPY pom.xml .
+
+# Create empty directories for all modules to satisfy Maven structure
+RUN mkdir -p common gateway-service auth-service transaction-service ocr-service budget-service notification-service 
+
+# Copy all module POM files
+COPY common/pom.xml ./common/
+COPY gateway-service/pom.xml ./gateway-service/
+COPY auth-service/pom.xml ./auth-service/
+COPY transaction-service/pom.xml ./transaction-service/
+COPY ocr-service/pom.xml ./ocr-service/
+COPY budget-service/pom.xml ./budget-service/
+COPY notification-service/pom.xml ./notification-service/
+
+# Download dependencies
+RUN mvn dependency:go-offline -pl ocr-service -am -B
+
+# Copy source code
+COPY common/src/ ./common/src/
+COPY ocr-service/src/ ./ocr-service/src/
+
+# Build the application
+RUN mvn clean package -pl ocr-service -am -B -DskipTests
+
+# Runtime stage
+FROM amazoncorretto:17-alpine
+
+WORKDIR /app
+
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+# Copy the built JAR
+COPY --from=builder /app/ocr-service/target/*.jar app.jar
+
+# Create non-root user
+RUN addgroup -g 1000 appgroup && \
+    adduser -D -u 1000 -G appgroup appuser
+
+# Change ownership of the app directory
+RUN chown -R appuser:appgroup /app
+
+# Switch to non-root user
+USER appuser
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8083/actuator/health || exit 1
+
+# Expose port
+EXPOSE 8083
+
+# Run the application
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
