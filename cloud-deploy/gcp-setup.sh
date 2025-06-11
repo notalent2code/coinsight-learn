@@ -145,16 +145,43 @@ create_gke_cluster() {
     echo -e "${GREEN}✅ GKE cluster created and configured${NC}"
 }
 
-# Build and push Docker images to Artifact Registry
+# Check and use existing Docker images from Artifact Registry
 build_and_push_images() {
-    echo -e "${BLUE}🔨 Building and pushing Docker images...${NC}"
+    echo -e "${BLUE}🔍 Checking existing Docker images...${NC}"
     
     REGISTRY_URL="${REGION}-docker.pkg.dev/${PROJECT_ID}/coinsight-registry"
     
-    # Services to build
+    # Services to check
     SERVICES=("auth-service" "transaction-service" "ocr-service" "budget-service" "notification-service" "gateway-service")
     
+    missing_images=()
+    existing_images=()
+    
     for service in "${SERVICES[@]}"; do
+        echo -e "${YELLOW}🔍 Checking $service image...${NC}"
+        
+        # Check if image exists in registry
+        if gcloud artifacts docker images list ${REGISTRY_URL}/${service} --filter="tags:latest" --format="value(IMAGE)" --quiet &>/dev/null; then
+            echo -e "${GREEN}✅ ${service} image exists - skipping build${NC}"
+            existing_images+=("$service")
+        else
+            echo -e "${YELLOW}⚠️  ${service} image not found - will build${NC}"
+            missing_images+=("$service")
+        fi
+    done
+    
+    if [ ${#existing_images[@]} -gt 0 ]; then
+        echo -e "${GREEN}🎉 Found ${#existing_images[@]} existing images: ${existing_images[*]}${NC}"
+    fi
+    
+    if [ ${#missing_images[@]} -eq 0 ]; then
+        echo -e "${GREEN}🚀 All images exist! Skipping build phase completely.${NC}"
+        return 0
+    fi
+    
+    echo -e "${BLUE}🔨 Building ${#missing_images[@]} missing images: ${missing_images[*]}${NC}"
+    
+    for service in "${missing_images[@]}"; do
         echo -e "${YELLOW}📦 Building $service...${NC}"
         
         # Create a simple cloudbuild.yaml for this service
@@ -183,7 +210,7 @@ EOF
         fi
     done
     
-    echo -e "${GREEN}🎉 All images built and pushed to Artifact Registry${NC}"
+    echo -e "${GREEN}🎉 All required images are now available in Artifact Registry${NC}"
 }
 
 # Deploy to GKE using modified Helm charts
