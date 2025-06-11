@@ -159,13 +159,13 @@ build_and_push_images() {
         
         # Create a simple cloudbuild.yaml for this service
         cat > cloudbuild-${service}.yaml << EOF
-        steps:
-        - name: 'gcr.io/cloud-builders/docker'
-        args: ['build', '-f', '${service}/Dockerfile', '-t', '${REGISTRY_URL}/${service}:latest', '.']
-        - name: 'gcr.io/cloud-builders/docker'
-        args: ['push', '${REGISTRY_URL}/${service}:latest']
-        timeout: 1200s
-        EOF
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-f', '${service}/Dockerfile', '-t', '${REGISTRY_URL}/${service}:latest', '.']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', '${REGISTRY_URL}/${service}:latest']
+timeout: 1200s
+EOF
         
         # Build with Cloud Build using config file
         gcloud builds submit \
