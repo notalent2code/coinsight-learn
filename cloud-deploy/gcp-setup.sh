@@ -157,17 +157,28 @@ build_and_push_images() {
     for service in "${SERVICES[@]}"; do
         echo -e "${YELLOW}📦 Building $service...${NC}"
         
-        # Build with Cloud Build (faster, uses Google's infrastructure)
+        # Create a simple cloudbuild.yaml for this service
+        cat > cloudbuild-${service}.yaml << EOF
+        steps:
+        - name: 'gcr.io/cloud-builders/docker'
+        args: ['build', '-f', '${service}/Dockerfile', '-t', '${REGISTRY_URL}/${service}:latest', '.']
+        - name: 'gcr.io/cloud-builders/docker'
+        args: ['push', '${REGISTRY_URL}/${service}:latest']
+        timeout: 1200s
+        EOF
+        
+        # Build with Cloud Build using config file
         gcloud builds submit \
-            --tag="${REGISTRY_URL}/${service}:latest" \
-            --dockerfile="${service}/Dockerfile" \
+            --config=cloudbuild-${service}.yaml \
             --timeout=20m \
             .
         
         if [ $? -eq 0 ]; then
             echo -e "${GREEN}✅ ${service} built and pushed successfully${NC}"
+            rm -f cloudbuild-${service}.yaml
         else
             echo -e "${RED}❌ Failed to build ${service}${NC}"
+            rm -f cloudbuild-${service}.yaml
             exit 1
         fi
     done
