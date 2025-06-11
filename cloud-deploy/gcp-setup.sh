@@ -214,6 +214,13 @@ deploy_to_gke() {
         --set microservices.notificationService.enabled=false \
         --set microservices.gatewayService.enabled=false \
         --set monitoring.enabled=false \
+        --set monitoring.prometheus.enabled=false \
+        --set monitoring.grafana.enabled=false \
+        --set monitoring.loki.enabled=false \
+        --set monitoring.promtail.enabled=false \
+        --set loki.enabled=false \
+        --set grafana.enabled=false \
+        --set prometheus.enabled=false \
         --wait --timeout=600s
     
     echo -e "${BLUE}⏳ Waiting for infrastructure to be ready...${NC}"
@@ -253,6 +260,26 @@ global:
     registry: "${REGISTRY_URL}"
     pullPolicy: Always
     tag: "latest"
+
+# Disable all monitoring components completely
+loki:
+  enabled: false
+grafana:
+  enabled: false
+prometheus:
+  enabled: false
+promtail:
+  enabled: false
+monitoring:
+  enabled: false
+  loki:
+    enabled: false
+  grafana:
+    enabled: false
+  prometheus:
+    enabled: false
+  promtail:
+    enabled: false
 
 # Use LoadBalancer instead of NodePort for GKE
 microservices:
